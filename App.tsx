@@ -61,12 +61,13 @@ function App(): JSX.Element {
             placeat culpa numquam totam perferendis!
           </Text>
         </View>
+
         <DailyMotionPlayer
-          playerId="x9uwg"
-          videoId="x8zdyio"
+          playerId="xtv3w"
+          videoId="x6idkj5"
           style={{
             width: '100%',
-            height: 250,
+            height: 300,
           }}
         />
         <View style={{paddingVertical: 10}}>

@@ -15,14 +15,12 @@ class DailymotionPlayerController: UIViewController, ObservableObject, DMVideoDe
   var playerId: String?
   var videoId: String = ""
   
-  var _parent: UIView
   var playerView: DMPlayerView?
   var parameters: DMPlayerParameters?
   
   
   // Initialize the class with playerId and videoId
-  init(parent: UIView, playerId: String?, videoId: String, parameters: DMPlayerParameters? = nil) {
-    self._parent = parent
+  init(playerId: String?, videoId: String, parameters: DMPlayerParameters? = nil) {
     self.playerId = playerId
     self.videoId = videoId
     self.parameters = parameters ?? DMPlayerParameters(mute: false, defaultFullscreenOrientation: .portrait)
@@ -37,6 +35,8 @@ class DailymotionPlayerController: UIViewController, ObservableObject, DMVideoDe
   
   override func viewDidLoad() {
     super.viewDidLoad()
+    self.view.backgroundColor = .red
+    self.view.clipsToBounds = true
     Task {
       await initPlayer()
     }
@@ -59,21 +59,17 @@ class DailymotionPlayerController: UIViewController, ObservableObject, DMVideoDe
     /**
      Add [player wrapper] as a subview of a parent
      */
-    self._parent.addSubview(playerView)
-    
+    self.view.addSubview(playerView)
     
     let constraints = [
-      playerView.topAnchor.constraint(equalTo: self._parent.topAnchor),
-      playerView.bottomAnchor.constraint(equalTo:  self._parent.bottomAnchor),
-      playerView.leadingAnchor.constraint(equalTo:self._parent.leadingAnchor),
-      playerView.trailingAnchor.constraint(equalTo: self._parent.trailingAnchor)
+      playerView.topAnchor.constraint(equalTo: self.view.topAnchor),
+      playerView.leadingAnchor.constraint(equalTo:self.view.leadingAnchor),
+      playerView.widthAnchor.constraint(equalToConstant: self.view.bounds.size.width),
+      playerView.heightAnchor.constraint(equalToConstant: self.view.bounds.size.height),
     ]
     
     NSLayoutConstraint.activate(constraints)
-    
-    print("Player view added", self.playerView!)
-    
-    
+    print("--Player view added", self.playerView!)
   }
   
   func play() {

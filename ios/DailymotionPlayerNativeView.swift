@@ -58,14 +58,40 @@ class DailymotionPlayerNativeView:  UIView {
     let defaultParameters = DMPlayerParameters(mute: false, defaultFullscreenOrientation: .landscapeRight)
     
     playerController = DailymotionPlayerController(
-      parent: self,
       playerId: playerId,
       videoId: videoId,
       parameters: defaultParameters
     )
     
+    playerController!.view.translatesAutoresizingMaskIntoConstraints = false
+    
     self.addSubview(playerController!.view)
     
+    NSLayoutConstraint.activate([
+      playerController!.view.topAnchor.constraint(equalTo: self.topAnchor),
+      playerController!.view.bottomAnchor.constraint(equalTo: self.bottomAnchor),
+      playerController!.view.leadingAnchor.constraint(equalTo: self.leadingAnchor),
+      playerController!.view.trailingAnchor.constraint(equalTo: self.trailingAnchor),
+    ])
+    
+  }
+  
+  override func layoutSubviews() {
+    super.layoutSubviews()
+      
+    print("--layoutSubviews-DailymotionPlayerNativeView")
+
+    NSLayoutConstraint.deactivate(playerController!.view.constraints)
+      
+    self.addSubview(playerController!.view)
+      
+    NSLayoutConstraint.activate([
+      playerController!.view.topAnchor.constraint(equalTo: self.topAnchor),
+      playerController!.view.bottomAnchor.constraint(equalTo: self.bottomAnchor),
+      playerController!.view.leadingAnchor.constraint(equalTo: self.leadingAnchor),
+      playerController!.view.trailingAnchor.constraint(equalTo: self.trailingAnchor),
+    ])
+     
   }
   
   private func updateViewIfNeeded() {
