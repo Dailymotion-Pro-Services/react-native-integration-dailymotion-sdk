@@ -17,7 +17,11 @@ class DailymotionPlayerController: UIViewController, ObservableObject, DMVideoDe
   
   var playerView: DMPlayerView?
   var parameters: DMPlayerParameters?
+  var isFullscreen: Bool = false
+  var playerConstraints: [NSLayoutConstraint] = []
   
+  private var originalParentView: UIView?
+  private var originalConstraints: [NSLayoutConstraint]?
   
   // Initialize the class with playerId and videoId
   init(playerId: String?, videoId: String, parameters: DMPlayerParameters? = nil) {
@@ -35,8 +39,6 @@ class DailymotionPlayerController: UIViewController, ObservableObject, DMVideoDe
   
   override func viewDidLoad() {
     super.viewDidLoad()
-    self.view.backgroundColor = .red
-    self.view.clipsToBounds = true
     Task {
       await initPlayer()
     }
@@ -71,6 +73,56 @@ class DailymotionPlayerController: UIViewController, ObservableObject, DMVideoDe
     NSLayoutConstraint.activate(constraints)
     print("--Player view added", self.playerView!)
   }
+  
+  
+//  func toggleFullscreen() {
+//      guard let player = playerView else { return }
+//
+//      if isFullscreen {
+//          // back to normal
+//          let normalWidth = self.view.bounds.size.width
+//          let normalHeight = self.view.bounds.size.height
+//
+//          // Deactivate previous constraint
+//          NSLayoutConstraint.deactivate(playerConstraints)
+//
+//          // constraint to normal
+//          playerConstraints = [
+//              player.topAnchor.constraint(equalTo: self.view.safeAreaLayoutGuide.topAnchor),
+//              player.leadingAnchor.constraint(equalTo: self.view.safeAreaLayoutGuide.leadingAnchor),
+//              player.widthAnchor.constraint(equalToConstant: normalWidth), // Ukuran normal sesuai ukuran parent view
+//              player.heightAnchor.constraint(equalToConstant: normalHeight) // Ukuran normal sesuai ukuran parent view
+//          ]
+//
+//          // activate new constraint
+//          NSLayoutConstraint.activate(playerConstraints)
+//
+//          print("--Back to normal mode: \(normalWidth) x \(normalHeight)")
+//      } else {
+//          // Masuk ke mode fullscreen (ukuran layar penuh)
+//        let screenWidth = UIScreen.main.bounds.size.height
+//        let screenHeight = UIScreen.main.bounds.size.width
+//
+//          // Deactivate previous constraint
+//          NSLayoutConstraint.deactivate(playerConstraints)
+//
+//          // Full screen constraint
+//          playerConstraints = [
+//              player.topAnchor.constraint(equalTo: self.view.safeAreaLayoutGuide.topAnchor),
+//              player.leadingAnchor.constraint(equalTo: self.view.safeAreaLayoutGuide.leadingAnchor),
+//              player.widthAnchor.constraint(equalToConstant: screenWidth),  // Ukuran layar penuh
+//              player.heightAnchor.constraint(equalToConstant: screenHeight) // Ukuran layar penuh
+//          ]
+//
+//          // Activate
+//          NSLayoutConstraint.activate(playerConstraints)
+//
+//          print("--Enter to full screen mode: \(screenWidth) x \(screenHeight)")
+//      }
+//
+//      // Toggle status fullscreen
+//      isFullscreen.toggle()
+//  }
   
   func play() {
     self.playerView?.play()
@@ -131,19 +183,17 @@ extension DailymotionPlayerController: DMPlayerDelegate {
   }
   
   func playerDidRequestFullscreen(_ player: DMPlayerView) {
-    // Move the player in fullscreen State
-    // Call notifyFullscreenChanged() the player will update his state
-    player.notifyFullscreenChanged()
+//      toggleFullscreen()
+      player.notifyFullscreenChanged()
   }
-  
+
   func playerDidExitFullScreen(_ player: DMPlayerView) {
-    // Move the player in initial State
-    // Call notifyFullscreenChanged() the player will update his state
-    player.notifyFullscreenChanged()
+//      toggleFullscreen()
+      player.notifyFullscreenChanged()
   }
   
   func playerWillPresentFullscreenViewController(_ player: DMPlayerView) -> UIViewController? {
-    return self
+    return nil
   }
   
   func playerWillPresentAdInParentViewController(_ player: DMPlayerView) -> UIViewController {
@@ -167,7 +217,68 @@ extension DailymotionPlayerController: DMPlayerDelegate {
   }
   
   func player(_ player: DMPlayerView, didChangePresentationMode presentationMode: DMPlayerView.PresentationMode) {
-    print( "--playerDidChangePresentationMode", player.isFullscreen)
+    print("--playerDidChangePresentationMode", player.isFullscreen)
+  
+    if ( self.parameters?.defaultFullscreenOrientation != .portrait) {
+      return
+    }
+  
+    if player.isFullscreen {
+      // Save the player's original parent and constraints
+      originalParentView = player.superview
+      originalConstraints = player.constraints
+
+      // Create the fullscreen black view
+      let fullscreenView = UIView()
+      fullscreenView.backgroundColor = .black
+      fullscreenView.translatesAutoresizingMaskIntoConstraints = false
+      fullscreenView.tag = 999 // Unique tag to identify the fullscreen view
+
+      // Get the key window to add the fullscreen view
+      if let keyWindow = UIApplication.shared.windows.first(where: { $0.isKeyWindow }) {
+          keyWindow.addSubview(fullscreenView)
+
+          // Set constraints to fill the entire screen
+          NSLayoutConstraint.activate([
+              fullscreenView.topAnchor.constraint(equalTo: keyWindow.topAnchor),
+              fullscreenView.leadingAnchor.constraint(equalTo: keyWindow.leadingAnchor),
+              fullscreenView.trailingAnchor.constraint(equalTo: keyWindow.trailingAnchor),
+              fullscreenView.bottomAnchor.constraint(equalTo: keyWindow.bottomAnchor)
+          ])
+
+          // Move the player view to the fullscreen view
+          player.removeFromSuperview()
+          fullscreenView.addSubview(player)
+
+          // Set constraints for the player within the fullscreen view
+          player.translatesAutoresizingMaskIntoConstraints = false
+          NSLayoutConstraint.activate([
+              player.topAnchor.constraint(equalTo: fullscreenView.topAnchor),
+              player.leadingAnchor.constraint(equalTo: fullscreenView.leadingAnchor),
+              player.trailingAnchor.constraint(equalTo: fullscreenView.trailingAnchor),
+              player.bottomAnchor.constraint(equalTo: fullscreenView.bottomAnchor)
+          ])
+      } else {
+          print("Unable to find the key window.")
+      }
+    } else {
+      // Exit fullscreen: Remove the fullscreen view
+      if let keyWindow = UIApplication.shared.windows.first(where: { $0.isKeyWindow }),
+        let fullscreenView = keyWindow.viewWithTag(999) {
+          fullscreenView.removeFromSuperview()
+      }
+
+      // Restore the player to its original parent view
+      if let originalParent = originalParentView, let originalConstraints = originalConstraints {
+        player.removeFromSuperview()
+        originalParent.addSubview(player)
+
+        // Restore original constraints
+        player.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.deactivate(player.constraints)
+        NSLayoutConstraint.activate(originalConstraints)
+      }
+    }
   }
   
   func player(_ player: DMPlayerView, didChangeScaleMode scaleMode: String) {

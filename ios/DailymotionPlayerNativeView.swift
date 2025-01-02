@@ -55,7 +55,7 @@ class DailymotionPlayerNativeView:  UIView {
     self.subviews.forEach { $0.removeFromSuperview() }
 
     
-    let defaultParameters = DMPlayerParameters(mute: false, defaultFullscreenOrientation: .landscapeRight)
+    let defaultParameters = DMPlayerParameters(mute: false, defaultFullscreenOrientation: .portrait)
     
     playerController = DailymotionPlayerController(
       playerId: playerId,
