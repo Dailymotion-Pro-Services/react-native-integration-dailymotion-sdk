@@ -64,7 +64,7 @@ function App(): JSX.Element {
 
         <DailyMotionPlayer
           playerId="xtv3w"
-          videoId="x6idkj5"
+          videoId="x8oapzq"
           style={{
             width: '100%',
             height: 300,
