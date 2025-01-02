@@ -370,8 +370,7 @@ Create a new folder named `DailymotionPlayer` in your ReactNative iOS project's 
 
 1. `DailymotionPlayerViewFactory.swift`
 2. `DailymotionPlayerViewFactory.m`
-3. `DailymotionPlayerController.swift`
-4. `DailymotionPlayerNativeView.swift`
+3. `DailymotionPlayerNativeView.swift`
 
 ![Create DailymotionPlayer Folder](./docs/Untitled.png)
 
@@ -431,9 +430,10 @@ import DailymotionPlayerSDK
 import SwiftUI
 
 @objc(DailymotionPlayerNativeView)
-class DailymotionPlayerNativeView:  UIView {
+class DailymotionPlayerNativeView:  UIView, DMVideoDelegate, DMAdDelegate {
+  weak var parentViewController: UIViewController?
 
-  private var playerController: DailymotionPlayerController?
+  var playerView: DMPlayerView?
 
   @objc var status = false {
     didSet {
@@ -454,107 +454,24 @@ class DailymotionPlayerNativeView:  UIView {
   }
 
 
+  @objc var onClick: RCTBubblingEventBlock?
+
   override init(frame: CGRect) {
     super.init(frame: frame)
-    setupView()
+    Task {
+      await initPlayer()
+    }
   }
 
   required init?(coder aDecoder: NSCoder) {
     super.init(coder: aDecoder)
   }
 
-  private func setupView() {
-
-    if(playerId.isEmpty){
-      return
-    }
-
-    // Remove all existing subviews to prevent duplicates.
-    self.subviews.forEach { $0.removeFromSuperview() }
-
-
-    let defaultParameters = DMPlayerParameters(mute: false, defaultFullscreenOrientation: .landscapeRight)
-
-    playerController = DailymotionPlayerController(
-      parent: self,
-      playerId: playerId,
-      videoId: videoId,
-      parameters: defaultParameters
-    )
-
-    self.addSubview(playerController!.view)
-
-  }
-
-  private func updateViewIfNeeded() {
-    // Ensure both videoId and playerId are present before calling setupView
-    if !videoId.isEmpty && !playerId.isEmpty {
-      setupView()
-    }
-  }
-}
-
-```
-
-- **Imports:**
-  - `Foundation`, `UIKit`, `DailymotionPlayerSDK`, and `SwiftUI` provide necessary functionalities for the class.
-- **Class Declaration:**
-  - `DailymotionPlayerNativeView` inherits from `UIView` and manages the Dailymotion player view.
-- **Properties:**
-  - `playerController` manages the Dailymotion player.
-  - `status`, `videoId`, and `playerId` are properties that update the view when changed.
-- **Initialization:**
-  - The `init(frame:)` and `init?(coder:)` methods initialize the view and call `setupView()`.
-- **Methods:**
-  - `setupView()` sets up the Dailymotion player.
-  - `updateViewIfNeeded()` ensures the player is updated only when both `videoId` and `playerId` are present.
-
-### Create DailymotionPlayerController.swift
-
-Copy the code below, this file is to call and create the dailymotion palyer
-
-```swift
-import Foundation
-import UIKit
-import DailymotionPlayerSDK
-import SwiftUI
-
-class DailymotionPlayerController: UIViewController, ObservableObject, DMVideoDelegate, DMAdDelegate{
-
-  var playerId: String?
-  var videoId: String = ""
-
-  var _parent: UIView
-  var playerView: DMPlayerView?
-  var parameters: DMPlayerParameters?
-
-
-  // Initialize the class with playerId and videoId
-  init(parent: UIView, playerId: String?, videoId: String, parameters: DMPlayerParameters? = nil) {
-    self._parent = parent
-    self.playerId = playerId
-    self.videoId = videoId
-    self.parameters = parameters ?? DMPlayerParameters(mute: false, defaultFullscreenOrientation: .portrait)
-
-    super.init(nibName: nil, bundle: nil)
-  }
-
-  required init?(coder aDecoder: NSCoder) {
-    fatalError("init(coder:) has not been implemented")
-  }
-
-
-  override func viewDidLoad() {
-    super.viewDidLoad()
-    Task {
-      await initPlayer()
-    }
-  }
 
 
   func initPlayer(with parameters: DMPlayerParameters? = nil) async {
     do {
-      let playerView = try await Dailymotion.createPlayer(playerId: playerId ?? "xix5x", videoId: videoId, playerParameters: (parameters ?? self.parameters)!, playerDelegate: self, videoDelegate: self, adDelegate: self, logLevels: [.all])
+      let playerView = try await Dailymotion.createPlayer(playerId: playerId, videoId: videoId, playerParameters: (parameters ?? DMPlayerParameters(mute: false, defaultFullscreenOrientation: .portrait))!, playerDelegate: self, videoDelegate: self, adDelegate: self, logLevels: [.all])
       addPlayerView(playerView: playerView)
     } catch {
       handlePlayerError(error: error)
@@ -568,21 +485,26 @@ class DailymotionPlayerController: UIViewController, ObservableObject, DMVideoDe
     /**
      Add [player wrapper] as a subview of a parent
      */
-    self._parent.addSubview(playerView)
-
+    self.addSubview(playerView)
 
     let constraints = [
-      playerView.topAnchor.constraint(equalTo: self._parent.topAnchor),
-      playerView.bottomAnchor.constraint(equalTo:  self._parent.bottomAnchor),
-      playerView.leadingAnchor.constraint(equalTo:self._parent.leadingAnchor),
-      playerView.trailingAnchor.constraint(equalTo: self._parent.trailingAnchor)
+      playerView.topAnchor.constraint(equalTo: self.topAnchor),
+      playerView.leadingAnchor.constraint(equalTo:self.leadingAnchor),
+      playerView.widthAnchor.constraint(equalToConstant: self.bounds.size.width),
+      playerView.heightAnchor.constraint(equalToConstant: self.bounds.size.height),
     ]
 
     NSLayoutConstraint.activate(constraints)
+    print("--Player view added", self.playerView!)
+  }
 
-    print("Player view added", self.playerView!)
-
-
+  private func updateViewIfNeeded() {
+    // Ensure both videoId and playerId are present before calling setupView
+    if !videoId.isEmpty && !playerId.isEmpty {
+      Task {
+        await initPlayer()
+      }
+    }
   }
 
   func play() {
@@ -635,31 +557,40 @@ class DailymotionPlayerController: UIViewController, ObservableObject, DMVideoDe
       break
     }
   }
+
+
 }
 
-extension DailymotionPlayerController: DMPlayerDelegate {
+
+extension DailymotionPlayerNativeView: DMPlayerDelegate {
   func player(_ player: DailymotionPlayerSDK.DMPlayerView, openUrl url: URL) {
 
   }
 
   func playerDidRequestFullscreen(_ player: DMPlayerView) {
-    // Move the player in fullscreen State
-    // Call notifyFullscreenChanged() the player will update his state
-    player.notifyFullscreenChanged()
+      player.notifyFullscreenChanged()
   }
 
   func playerDidExitFullScreen(_ player: DMPlayerView) {
-    // Move the player in initial State
-    // Call notifyFullscreenChanged() the player will update his state
-    player.notifyFullscreenChanged()
+      player.notifyFullscreenChanged()
   }
 
   func playerWillPresentFullscreenViewController(_ player: DMPlayerView) -> UIViewController? {
-    return self
+    guard let viewController = self.findViewController() else {
+      fatalError("No parent view controller found in the view hierarchy.")
+    }
+    return viewController
   }
 
   func playerWillPresentAdInParentViewController(_ player: DMPlayerView) -> UIViewController {
-    return self
+    guard let viewController = self.findViewController() else {
+      fatalError("No parent view controller found in the view hierarchy.")
+    }
+    return viewController
+  }
+
+  func player(_ player: DMPlayerView, didChangePresentationMode presentationMode: DMPlayerView.PresentationMode) {
+    print("--playerDidChangePresentationMode", player.isFullscreen)
   }
 
   func player(_ player: DMPlayerView, didChangeVideo changedVideoEvent: PlayerVideoChangeEvent) {
@@ -678,16 +609,36 @@ extension DailymotionPlayerController: DMPlayerDelegate {
     print( "--playerDidReceivePlaybackPermission")
   }
 
-  func player(_ player: DMPlayerView, didChangePresentationMode presentationMode: DMPlayerView.PresentationMode) {
-    print( "--playerDidChangePresentationMode", player.isFullscreen)
-  }
 
   func player(_ player: DMPlayerView, didChangeScaleMode scaleMode: String) {
     print( "--playerDidChangeScaleMode")
   }
-}
 
+  func findViewController() -> UIViewController? {
+      var responder: UIResponder? = self
+      while let currentResponder = responder {
+          if let viewController = currentResponder as? UIViewController {
+              return viewController
+          }
+          responder = currentResponder.next
+      }
+      return nil
+  }
+}
 ```
+
+- **Imports:**
+  - `Foundation`, `UIKit`, `DailymotionPlayerSDK`, and `SwiftUI` provide necessary functionalities for the class.
+- **Class Declaration:**
+  - `DailymotionPlayerNativeView` inherits from `UIView` and manages the Dailymotion player view.
+- **Properties:**
+  - `parentViewController` manages the view controller for DailymotionPlayerSDK.
+  - `status`, `videoId`, and `playerId` are properties that update the view when changed.
+- **Initialization:**
+  - The `init(frame:)` and `init?(coder:)` methods initialize the view and call `initPlayer()`.
+- **Methods:**
+  - `initPlayer()` sets up the Dailymotion player.
+  - `updateViewIfNeeded()` ensures the player is updated only when both `videoId` and `playerId` are present.
 
 ## Using DailyMotionPlayer Package in React Native
 
