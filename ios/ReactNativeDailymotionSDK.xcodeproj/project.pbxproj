@@ -8,7 +8,6 @@
 
 /* Begin PBXBuildFile section */
 		00E356F31AD99517003FC87E /* ReactNativeDailymotionSDKTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 00E356F21AD99517003FC87E /* ReactNativeDailymotionSDKTests.m */; };
-		0C80B921A6F3F58F76C31292 /* libPods-ReactNativeDailymotionSDK.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 5DCACB8F33CDC322A6C60F78 /* libPods-ReactNativeDailymotionSDK.a */; };
 		13B07FBC1A68108700A75B9A /* AppDelegate.mm in Sources */ = {isa = PBXBuildFile; fileRef = 13B07FB01A68108700A75B9A /* AppDelegate.mm */; };
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
 		13B07FC11A68108700A75B9A /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 13B07FB71A68108700A75B9A /* main.m */; };
@@ -17,8 +16,9 @@
 		6A6D10F52C24EA2400481DE8 /* DailymotionPlayerNativeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A6D10F42C24EA2400481DE8 /* DailymotionPlayerNativeView.swift */; };
 		6AF05C512C27328900397C8B /* DailymotionPlayerSDK in Frameworks */ = {isa = PBXBuildFile; productRef = 6AF05C502C27328900397C8B /* DailymotionPlayerSDK */; };
 		6AF05C542C2732F200397C8B /* DailymotionPlayerSDK in Frameworks */ = {isa = PBXBuildFile; productRef = 6AF05C532C2732F200397C8B /* DailymotionPlayerSDK */; };
-		7699B88040F8A987B510C191 /* libPods-ReactNativeDailymotionSDK-ReactNativeDailymotionSDKTests.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 19F6CBCC0A4E27FBF8BF4A61 /* libPods-ReactNativeDailymotionSDK-ReactNativeDailymotionSDKTests.a */; };
+		7A2920A777731D60B1E2D587 /* Pods_ReactNativeDailymotionSDK.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 35BC7C39235C776205567539 /* Pods_ReactNativeDailymotionSDK.framework */; };
 		81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */; };
+		C64444D72EF16E95BB01296F /* Pods_ReactNativeDailymotionSDK_ReactNativeDailymotionSDKTests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DB99C8DE91E288BBE2357F36 /* Pods_ReactNativeDailymotionSDK_ReactNativeDailymotionSDKTests.framework */; };
 		CC6E3EE058D91B87B4D9F4AF /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 966F6022E42CCF2BD39CD05F /* PrivacyInfo.xcprivacy */; };
 /* End PBXBuildFile section */
 
@@ -43,11 +43,10 @@
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = ReactNativeDailymotionSDK/Info.plist; sourceTree = "<group>"; };
 		13B07FB71A68108700A75B9A /* main.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = main.m; path = ReactNativeDailymotionSDK/main.m; sourceTree = "<group>"; };
 		13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = PrivacyInfo.xcprivacy; path = ReactNativeDailymotionSDK/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
-		19F6CBCC0A4E27FBF8BF4A61 /* libPods-ReactNativeDailymotionSDK-ReactNativeDailymotionSDKTests.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-ReactNativeDailymotionSDK-ReactNativeDailymotionSDKTests.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		35BC7C39235C776205567539 /* Pods_ReactNativeDailymotionSDK.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_ReactNativeDailymotionSDK.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		3B4392A12AC88292D35C810B /* Pods-ReactNativeDailymotionSDK.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-ReactNativeDailymotionSDK.debug.xcconfig"; path = "Target Support Files/Pods-ReactNativeDailymotionSDK/Pods-ReactNativeDailymotionSDK.debug.xcconfig"; sourceTree = "<group>"; };
 		5709B34CF0A7D63546082F79 /* Pods-ReactNativeDailymotionSDK.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-ReactNativeDailymotionSDK.release.xcconfig"; path = "Target Support Files/Pods-ReactNativeDailymotionSDK/Pods-ReactNativeDailymotionSDK.release.xcconfig"; sourceTree = "<group>"; };
 		5B7EB9410499542E8C5724F5 /* Pods-ReactNativeDailymotionSDK-ReactNativeDailymotionSDKTests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-ReactNativeDailymotionSDK-ReactNativeDailymotionSDKTests.debug.xcconfig"; path = "Target Support Files/Pods-ReactNativeDailymotionSDK-ReactNativeDailymotionSDKTests/Pods-ReactNativeDailymotionSDK-ReactNativeDailymotionSDKTests.debug.xcconfig"; sourceTree = "<group>"; };
-		5DCACB8F33CDC322A6C60F78 /* libPods-ReactNativeDailymotionSDK.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-ReactNativeDailymotionSDK.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		6A6AEC172C1A679700F945A3 /* ReactNativeDailymotionSDK-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "ReactNativeDailymotionSDK-Bridging-Header.h"; sourceTree = "<group>"; };
 		6A6AEC182C1A679700F945A3 /* DailymotionPlayerViewFactory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailymotionPlayerViewFactory.swift; sourceTree = "<group>"; };
 		6A6D10F12C226AC200481DE8 /* DailymotionPlayerViewFactory.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = DailymotionPlayerViewFactory.m; sourceTree = "<group>"; };
@@ -55,6 +54,7 @@
 		81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = ReactNativeDailymotionSDK/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		89C6BE57DB24E9ADA2F236DE /* Pods-ReactNativeDailymotionSDK-ReactNativeDailymotionSDKTests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-ReactNativeDailymotionSDK-ReactNativeDailymotionSDKTests.release.xcconfig"; path = "Target Support Files/Pods-ReactNativeDailymotionSDK-ReactNativeDailymotionSDKTests/Pods-ReactNativeDailymotionSDK-ReactNativeDailymotionSDKTests.release.xcconfig"; sourceTree = "<group>"; };
 		966F6022E42CCF2BD39CD05F /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xml; name = PrivacyInfo.xcprivacy; path = ReactNativeDailymotionSDK/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		DB99C8DE91E288BBE2357F36 /* Pods_ReactNativeDailymotionSDK_ReactNativeDailymotionSDKTests.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_ReactNativeDailymotionSDK_ReactNativeDailymotionSDKTests.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
@@ -63,7 +63,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				7699B88040F8A987B510C191 /* libPods-ReactNativeDailymotionSDK-ReactNativeDailymotionSDKTests.a in Frameworks */,
+				C64444D72EF16E95BB01296F /* Pods_ReactNativeDailymotionSDK_ReactNativeDailymotionSDKTests.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -73,7 +73,7 @@
 			files = (
 				6AF05C542C2732F200397C8B /* DailymotionPlayerSDK in Frameworks */,
 				6AF05C512C27328900397C8B /* DailymotionPlayerSDK in Frameworks */,
-				0C80B921A6F3F58F76C31292 /* libPods-ReactNativeDailymotionSDK.a in Frameworks */,
+				7A2920A777731D60B1E2D587 /* Pods_ReactNativeDailymotionSDK.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -118,8 +118,8 @@
 			isa = PBXGroup;
 			children = (
 				ED297162215061F000B7C4FE /* JavaScriptCore.framework */,
-				5DCACB8F33CDC322A6C60F78 /* libPods-ReactNativeDailymotionSDK.a */,
-				19F6CBCC0A4E27FBF8BF4A61 /* libPods-ReactNativeDailymotionSDK-ReactNativeDailymotionSDKTests.a */,
+				35BC7C39235C776205567539 /* Pods_ReactNativeDailymotionSDK.framework */,
+				DB99C8DE91E288BBE2357F36 /* Pods_ReactNativeDailymotionSDK_ReactNativeDailymotionSDKTests.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -605,6 +605,17 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"${PODS_CONFIGURATION_BUILD_DIR}/ReactCommon/ReactCommon.framework/Headers",
+					"${PODS_CONFIGURATION_BUILD_DIR}/ReactCommon/ReactCommon.framework/Headers/react/nativemodule/core",
+					"${PODS_CONFIGURATION_BUILD_DIR}/ReactCommon-Samples/ReactCommon_Samples.framework/Headers",
+					"${PODS_CONFIGURATION_BUILD_DIR}/ReactCommon-Samples/ReactCommon_Samples.framework/Headers/platform/ios",
+					"${PODS_CONFIGURATION_BUILD_DIR}/React-Fabric/React_Fabric.framework/Headers/react/renderer/components/view/platform/cxx",
+					"${PODS_CONFIGURATION_BUILD_DIR}/React-NativeModulesApple/React_NativeModulesApple.framework/Headers",
+					"${PODS_CONFIGURATION_BUILD_DIR}/React-graphics/React_graphics.framework/Headers",
+					"${PODS_CONFIGURATION_BUILD_DIR}/React-graphics/React_graphics.framework/Headers/react/renderer/graphics/platform/ios",
+				);
 				IPHONEOS_DEPLOYMENT_TARGET = 13.4;
 				LD = "";
 				LDPLUSPLUS = "";
@@ -682,6 +693,17 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"${PODS_CONFIGURATION_BUILD_DIR}/ReactCommon/ReactCommon.framework/Headers",
+					"${PODS_CONFIGURATION_BUILD_DIR}/ReactCommon/ReactCommon.framework/Headers/react/nativemodule/core",
+					"${PODS_CONFIGURATION_BUILD_DIR}/ReactCommon-Samples/ReactCommon_Samples.framework/Headers",
+					"${PODS_CONFIGURATION_BUILD_DIR}/ReactCommon-Samples/ReactCommon_Samples.framework/Headers/platform/ios",
+					"${PODS_CONFIGURATION_BUILD_DIR}/React-Fabric/React_Fabric.framework/Headers/react/renderer/components/view/platform/cxx",
+					"${PODS_CONFIGURATION_BUILD_DIR}/React-NativeModulesApple/React_NativeModulesApple.framework/Headers",
+					"${PODS_CONFIGURATION_BUILD_DIR}/React-graphics/React_graphics.framework/Headers",
+					"${PODS_CONFIGURATION_BUILD_DIR}/React-graphics/React_graphics.framework/Headers/react/renderer/graphics/platform/ios",
+				);
 				IPHONEOS_DEPLOYMENT_TARGET = 13.4;
 				LD = "";
 				LDPLUSPLUS = "";
