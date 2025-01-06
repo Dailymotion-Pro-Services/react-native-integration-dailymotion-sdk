@@ -68,6 +68,10 @@ class DailymotionPlayerNativeView:  UIView, DMVideoDelegate, DMAdDelegate {
           } else {
               // Since playerView is optional because of a possible error it must be unwrapped first
               if let playerView = playerView {
+                
+                  // set video to fullscreen
+                  playerView.setFullscreen(fullscreen: true)
+                
                   // Add the Player View to view hierarchy
                   self.addPlayerView(playerView: playerView)
               }
