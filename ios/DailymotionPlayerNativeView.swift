@@ -16,11 +16,6 @@ class DailymotionPlayerNativeView:  UIView, DMVideoDelegate, DMAdDelegate {
   
   var playerView: DMPlayerView?
   
-  @objc var status = false {
-    didSet {
-      updateViewIfNeeded()
-    }
-  }
   
   @objc var videoId = "" {
     didSet {
@@ -40,7 +35,7 @@ class DailymotionPlayerNativeView:  UIView, DMVideoDelegate, DMAdDelegate {
   override init(frame: CGRect) {
     super.init(frame: frame)
     Task {
-      await initPlayer()
+      initPlayer()
     }
   }
   
@@ -48,15 +43,36 @@ class DailymotionPlayerNativeView:  UIView, DMVideoDelegate, DMAdDelegate {
     super.init(coder: aDecoder)
   }
   
-  
-
-  func initPlayer(with parameters: DMPlayerParameters? = nil) async {
-    do {
-      let playerView = try await Dailymotion.createPlayer(playerId: playerId, videoId: videoId, playerParameters: (parameters ?? DMPlayerParameters(mute: false, defaultFullscreenOrientation: .portrait))!, playerDelegate: self, videoDelegate: self, adDelegate: self, logLevels: [.all])
-      addPlayerView(playerView: playerView)
-    } catch {
-      handlePlayerError(error: error)
-    }
+  func initPlayer() {
+      if videoId.isEmpty || playerId.isEmpty {
+        return
+      }
+    
+      // Add additional customisation to the player by using DMPlayerParameters struct
+      let playerParams = DMPlayerParameters(mute: true, defaultFullscreenOrientation: .portrait)
+    
+      // Using Dailymotion singleton instance in order to create the player
+      // In order to get all the functionalities like fullscreen, ad support and open url pass and implement player delegate to the initialisation as bellow or after initialisation using playerView.playerDelegate = self
+      // Add your player ID that was created in Dailymotion Partner HQ
+      print("--Player ID: ", playerId)
+      print("--Video ID: ", videoId)
+    
+      Dailymotion.createPlayer(playerId: playerId, videoId: videoId, playerParameters: playerParams , playerDelegate: self, logLevels: [.all]) { [weak self]  playerView, error in
+          // Wait for Player initialisation and check if self is still allocated
+          guard let self = self else {
+              return
+          }
+          // Checking first if the createPlayer returned an error
+          if let error = error {
+              self.handlePlayerError(error: error)
+          } else {
+              // Since playerView is optional because of a possible error it must be unwrapped first
+              if let playerView = playerView {
+                  // Add the Player View to view hierarchy
+                  self.addPlayerView(playerView: playerView)
+              }
+          }
+      }
   }
   
   
@@ -76,6 +92,7 @@ class DailymotionPlayerNativeView:  UIView, DMVideoDelegate, DMAdDelegate {
     ]
     
     NSLayoutConstraint.activate(constraints)
+    
     print("--Player view added", self.playerView!)
   }
 
@@ -83,7 +100,7 @@ class DailymotionPlayerNativeView:  UIView, DMVideoDelegate, DMAdDelegate {
     // Ensure both videoId and playerId are present before calling setupView
     if !videoId.isEmpty && !playerId.isEmpty {
       Task {
-        await initPlayer()
+        initPlayer()
       }
     }
   }
