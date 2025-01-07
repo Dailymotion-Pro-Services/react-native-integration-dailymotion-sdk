@@ -33,7 +33,7 @@ function Demo(): JSX.Element {
 
       <DailyMotionPlayer
         playerId="xtv3w"
-        videoId="x8oapzq"
+        videoId="x9by1z0"
         style={{
           width: '100%',
           height: 300,
