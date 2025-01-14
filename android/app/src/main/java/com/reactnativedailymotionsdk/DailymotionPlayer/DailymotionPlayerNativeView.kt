@@ -6,6 +6,8 @@ import android.view.View
 import android.widget.FrameLayout
 import androidx.fragment.app.DialogFragment
 import com.dailymotion.player.android.sdk.Dailymotion
+import com.dailymotion.player.android.sdk.Orientation
+import com.dailymotion.player.android.sdk.PlayerParameters
 import com.dailymotion.player.android.sdk.PlayerView
 import com.dailymotion.player.android.sdk.listeners.PlayerListener
 import com.dailymotion.player.android.sdk.webview.error.PlayerError
@@ -80,9 +82,15 @@ class DailymotionPlayerNativeView(context: ThemedReactContext?) : FrameLayout(co
 
         Log.d("--DailymotionPlayer--", "createDailymotionPlayer")
 
+        val playerParameters = PlayerParameters(
+            mute = true,
+            defaultFullscreenOrientation = Orientation.Portrait // Set the default fullscreen orientation to portrait
+        )
+
         Dailymotion.createPlayer(
                 context,
                 playerId = playerId,
+                playerParameters = playerParameters,
                 playerSetupListener =
                 object : Dailymotion.PlayerSetupListener {
                     override fun onPlayerSetupFailed(error: PlayerError) {
