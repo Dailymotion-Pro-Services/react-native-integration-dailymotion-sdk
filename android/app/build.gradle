@@ -110,8 +110,8 @@ android {
 dependencies {
     // The version of react-native is set by the React Native Gradle Plugin
     implementation("com.facebook.react:react-android")
-    implementation 'com.dailymotion.player.android:sdk:1.2.4'
-    implementation 'com.dailymotion.player.android:ads:1.2.4'
+    implementation 'com.dailymotion.player.android:sdk:1.2.7'
+    implementation 'com.dailymotion.player.android:ads:1.2.7'
 
     if (hermesEnabled.toBoolean()) {
         implementation("com.facebook.react:hermes-android")
