@@ -112,6 +112,7 @@ dependencies {
     implementation("com.facebook.react:react-android")
     implementation 'com.dailymotion.player.android:sdk:1.2.7'
     implementation 'com.dailymotion.player.android:ads:1.2.7'
+    implementation 'com.google.ads.interactivemedia.v3:interactivemedia:3.33.0'
 
     if (hermesEnabled.toBoolean()) {
         implementation("com.facebook.react:hermes-android")
