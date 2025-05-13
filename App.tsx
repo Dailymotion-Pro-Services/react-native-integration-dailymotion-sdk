@@ -5,9 +5,9 @@
  * @format
  */
 
+import { createStaticNavigation } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import * as React from 'react';
-import {createStaticNavigation} from '@react-navigation/native';
-import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import Demo from './Demo';
 
 const RootStack = createNativeStackNavigator({
