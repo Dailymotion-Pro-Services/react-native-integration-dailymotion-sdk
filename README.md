@@ -131,6 +131,112 @@ playerRef.current?.loadContent('videoId', 'playlistId?', 0 /* startTime */);
 playerRef.current?.destroy();
 ```
 
+### Sticky / Floating Player
+
+A draggable, pinch-to-resize floating player. Requires [`react-native-gesture-handler`](https://docs.swmansion.com/react-native-gesture-handler/) ≥ 2.0 and [`react-native-reanimated`](https://docs.swmansion.com/react-native-reanimated/) ≥ 3.0.
+
+```sh
+npm install react-native-gesture-handler react-native-reanimated
+```
+
+> **Note:** `GestureHandlerRootView` must wrap your root app component (e.g. in `App.tsx`), not be nested inside individual screens.
+
+```tsx
+import { StyleSheet } from 'react-native';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+} from 'react-native-reanimated';
+import {
+  Gesture,
+  GestureDetector,
+  GestureHandlerRootView,
+} from 'react-native-gesture-handler';
+import DailymotionPlayerView from 'react-native-dailymotion-sdk';
+
+const ASPECT_RATIO = 16 / 9;
+const DEFAULT_WIDTH = 320;
+const MIN_WIDTH = 160;
+const MAX_WIDTH = 400;
+
+export function StickyPlayer({
+  playerId,
+  videoId,
+}: {
+  playerId: string;
+  videoId: string;
+}) {
+  const translateX = useSharedValue(16);
+  const translateY = useSharedValue(16);
+  const savedX = useSharedValue(16);
+  const savedY = useSharedValue(16);
+  const width = useSharedValue(DEFAULT_WIDTH);
+  const savedWidth = useSharedValue(DEFAULT_WIDTH);
+
+  const pan = Gesture.Pan()
+    .onUpdate((e) => {
+      translateX.value = savedX.value + e.translationX;
+      translateY.value = savedY.value + e.translationY;
+    })
+    .onEnd(() => {
+      savedX.value = translateX.value;
+      savedY.value = translateY.value;
+    });
+
+  const pinch = Gesture.Pinch()
+    .onUpdate((e) => {
+      width.value = Math.min(
+        MAX_WIDTH,
+        Math.max(MIN_WIDTH, savedWidth.value * e.scale)
+      );
+    })
+    .onEnd(() => {
+      savedWidth.value = width.value;
+    });
+
+  const composed = Gesture.Simultaneous(pan, pinch);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateX: translateX.value },
+      { translateY: translateY.value },
+    ],
+    width: width.value,
+    height: width.value / ASPECT_RATIO,
+  }));
+
+  return (
+    <GestureHandlerRootView style={StyleSheet.absoluteFill} pointerEvents="box-none">
+      <GestureDetector gesture={composed}>
+        <Animated.View style={[styles.floatingPlayer, animatedStyle]}>
+          <DailymotionPlayerView
+            playerId={playerId}
+            videoId={videoId}
+            style={{ flex: 1 }}
+          />
+        </Animated.View>
+      </GestureDetector>
+    </GestureHandlerRootView>
+  );
+}
+
+const styles = StyleSheet.create({
+  floatingPlayer: {
+    position: 'absolute',
+    zIndex: 999,
+    elevation: 10,
+    borderRadius: 8,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+  },
+});
+```
+
+Use `StickyPlayer` anywhere in your screen tree — it renders above all content via `position: 'absolute'` and `zIndex`.
+
 ---
 
 ## Props
