@@ -1,4 +1,4 @@
-# react-native-dailymotion-player
+# react-native-dailymotion-sdk
 
 React Native native UI component wrapping the Dailymotion Player SDK.
 Supports **Android** and **iOS** with New Architecture (Fabric interop / bridgeless).
@@ -24,9 +24,9 @@ Supports **Android** and **iOS** with New Architecture (Fabric interop / bridgel
 ### 1. Add the npm package
 
 ```sh
-npm install react-native-dailymotion-player
+npm install react-native-dailymotion-sdk
 # or
-yarn add react-native-dailymotion-player
+yarn add react-native-dailymotion-sdk
 ```
 
 ### 2. Android
@@ -86,7 +86,7 @@ npx react-native run-ios
 ```tsx
 import { useRef } from 'react';
 import { View, StyleSheet } from 'react-native';
-import DailymotionPlayerView, { DailymotionPlayerRef } from 'react-native-dailymotion-player';
+import DailymotionPlayerView, { DailymotionPlayerRef } from 'react-native-dailymotion-sdk';
 
 export default function MyScreen() {
   const playerRef = useRef<DailymotionPlayerRef>(null);
