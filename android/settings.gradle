@@ -1,24 +1,8 @@
-pluginManagement {
-    includeBuild("../node_modules/@react-native/gradle-plugin")
-}
-plugins {
-    id("com.facebook.react.settings")
-}
-dependencyResolutionManagement {
-    repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
-    repositories {
-        google()
-        mavenCentral()
-        maven {
-            name = "DailymotionMavenRelease"
-            url = "https://mvn.dailymotion.com/repository/releases/"
-        }
-    }
-}
-
+pluginManagement { includeBuild("../node_modules/@react-native/gradle-plugin") }
+plugins { id("com.facebook.react.settings") }
 extensions.configure(com.facebook.react.ReactSettingsExtension){ ex -> ex.autolinkLibrariesFromCommand() }
-
-rootProject.name = 'ReactNativeDailymotionSDK'
-
+rootProject.name = 'NewReactNativeDailymotionSDK'
 include ':app'
+include ':dailymotionplayer'
+project(':dailymotionplayer').projectDir = new File(rootDir, 'dailymotionplayer')
 includeBuild('../node_modules/@react-native/gradle-plugin')
