@@ -1,9 +1,8 @@
 import Foundation
-import SwiftUI
 
 @objc(DailymotionPlayerNative)
 class DailymotionPlayerViewFactory: RCTViewManager {
-  
+
   override static func requiresMainQueueSetup() -> Bool {
     return true
   }
@@ -12,19 +11,14 @@ class DailymotionPlayerViewFactory: RCTViewManager {
     return DailymotionPlayerNativeView()
   }
 
-  func dispatchToView(
-    reactTag: NSNumber,
-    methodName: String,
-    argument: Any?
-  ) {
+  // Uses static view registry — bridge.uiManager is unavailable in New Architecture (Fabric interop).
+  func dispatchToView(reactTag: NSNumber, methodName: String, argument: Any?) {
     DispatchQueue.main.async {
-      guard let view = self.bridge.uiManager.view(forReactTag: reactTag) else {
-        print("Error: View not found")
+      guard let view = DailymotionPlayerNativeView.viewRegistry[reactTag] else {
+        print("[DM] View not found for reactTag \(reactTag)")
         return
       }
-      if let view = view as? DailymotionPlayerNativeView {
-        view.invokeMethod(methodName, with: argument)
-      }
+      view.invokeMethod(methodName, with: argument)
     }
   }
 
@@ -62,8 +56,8 @@ class DailymotionPlayerViewFactory: RCTViewManager {
 
   @objc func setFullscreen(_ reactTag: NSNumber, fullscreen: Bool, orientation: String?) {
     dispatchToView(reactTag: reactTag, methodName: "setFullscreen", argument: [
-        "fullscreen": fullscreen,
-        "orientation": orientation ?? "portrait"
+      "fullscreen": fullscreen,
+      "orientation": orientation ?? "portrait",
     ])
   }
 
@@ -73,5 +67,9 @@ class DailymotionPlayerViewFactory: RCTViewManager {
 
   @objc func setPlaybackSpeed(_ reactTag: NSNumber, speed: Double) {
     dispatchToView(reactTag: reactTag, methodName: "setPlaybackSpeed", argument: speed)
+  }
+
+  @objc func destroy(_ reactTag: NSNumber) {
+    dispatchToView(reactTag: reactTag, methodName: "destroy", argument: nil)
   }
 }

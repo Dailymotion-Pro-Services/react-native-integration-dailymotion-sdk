@@ -1,13 +1,18 @@
 {
   "name": "react-native-dailymotion-player",
   "version": "0.1.0",
-  "description": "React Native native UI component wrapping the Dailymotion Android SDK PlayerView",
+  "description": "React Native native UI component wrapping the Dailymotion Player SDK (Android + iOS)",
   "main": "src/index.tsx",
   "module": "src/index.tsx",
   "types": "src/index.tsx",
   "files": [
     "src",
     "android",
+    "ios/DailymotionPlayerNativeView.swift",
+    "ios/DailymotionPlayerViewFactory.swift",
+    "ios/DailymotionPlayerViewFactory.m",
+    "ios/DailymotionPlayerBridge.h",
+    "DailymotionPlayer.podspec",
     "react-native.config.js"
   ],
   "keywords": [
@@ -15,7 +20,8 @@
     "dailymotion",
     "player",
     "video",
-    "android"
+    "android",
+    "ios"
   ],
   "scripts": {
     "android": "react-native run-android",

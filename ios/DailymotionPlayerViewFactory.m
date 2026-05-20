@@ -19,4 +19,5 @@ RCT_EXTERN_METHOD(setScaleMode:(nonnull NSNumber *)reactTag config:(nonnull NSSt
 RCT_EXTERN_METHOD(setFullscreen:(nonnull NSNumber *)reactTag fullscreen:(nonnull BOOL)fullscreen orientation:(NSString *)orientation)
 RCT_EXTERN_METHOD(setSubtitles:(nonnull NSNumber *)reactTag code:(nonnull NSString *)code)
 RCT_EXTERN_METHOD(setPlaybackSpeed:(nonnull NSNumber *)reactTag speed:(nonnull double *)speed)
+RCT_EXTERN_METHOD(destroy:(nonnull NSNumber *)reactTag)
 @end
