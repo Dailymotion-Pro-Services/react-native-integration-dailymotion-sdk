@@ -18,6 +18,10 @@ import com.dailymotion.player.android.sdk.webview.error.PlayerError
 import com.dailymotion.player.android.sdk.webview.events.PlayerEvent
 import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.ReactContext
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import com.facebook.react.bridge.ReadableMap
 import com.facebook.react.bridge.ReadableType
 import com.facebook.react.bridge.WritableMap
@@ -135,6 +139,11 @@ class DailymotionPlayerNativeView(context: ThemedReactContext?) : FrameLayout(co
     ) {
         Log.d(TAG, "createDailymotionPlayer: playerId=$playerId videoId=$videoId")
 
+        CoroutineScope(Dispatchers.IO).launch {
+            creationLock.acquire()
+            Log.d(TAG, "createDailymotionPlayer: lock acquired for playerId=$playerId")
+            withContext(Dispatchers.Main) {
+
         Dailymotion.createPlayer(
             context,
             playerId = playerId,
@@ -143,10 +152,12 @@ class DailymotionPlayerNativeView(context: ThemedReactContext?) : FrameLayout(co
             playerParameters = playerParameters,
             playerSetupListener = object : Dailymotion.PlayerSetupListener {
                 override fun onPlayerSetupFailed(error: PlayerError) {
+                    creationLock.release()
                     Log.e(TAG, "Player setup failed: ${error.message}")
                 }
 
                 override fun onPlayerSetupSuccess(player: PlayerView) {
+                    creationLock.release()
                     dmPlayer = player
                     playerContainerView.addView(
                         dmPlayer,
@@ -392,6 +403,8 @@ class DailymotionPlayerNativeView(context: ThemedReactContext?) : FrameLayout(co
                 }
             }
         )
+            } // withContext(Dispatchers.Main)
+        } // CoroutineScope.launch
     }
 
     fun setPlayerId(id: String) { playerId = id }
@@ -499,5 +512,6 @@ class DailymotionPlayerNativeView(context: ThemedReactContext?) : FrameLayout(co
     companion object {
         private const val TAG = "--DailymotionPlayer--"
         val viewRegistry = java.util.concurrent.ConcurrentHashMap<Int, DailymotionPlayerNativeView>()
+        private val creationLock = java.util.concurrent.Semaphore(1)
     }
 }
