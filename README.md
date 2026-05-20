@@ -1,97 +1,256 @@
-This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
+# react-native-dailymotion-player
 
-# Getting Started
+React Native native UI component wrapping the Dailymotion Player SDK.
+Supports **Android** and **iOS** with New Architecture (Fabric interop / bridgeless).
 
-> **Note**: Make sure you have completed the [Set Up Your Environment](https://reactnative.dev/docs/set-up-your-environment) guide before proceeding.
+| | Android | iOS |
+|---|---|---|
+| SDK | Dailymotion Android SDK 2.1.1 | Dailymotion iOS SDK (SPM) |
+| Architecture | New Architecture (`newArchEnabled=true`) | New Architecture (Fabric interop) |
+| Min version | API 21 | iOS 14.0 |
 
-## Step 1: Start Metro
+---
 
-First, you will need to run **Metro**, the JavaScript build tool for React Native.
+## Requirements
 
-To start the Metro dev server, run the following command from the root of your React Native project:
+- React Native ≥ 0.76 (New Architecture)
+- Android: API 21+
+- iOS: 14.0+, Xcode 14+
 
-```sh
-# Using npm
-npm start
+---
 
-# OR using Yarn
-yarn start
-```
+## Installation
 
-## Step 2: Build and run your app
-
-With Metro running, open a new terminal window/pane from the root of your React Native project, and use one of the following commands to build and run your Android or iOS app:
-
-### Android
-
-```sh
-# Using npm
-npm run android
-
-# OR using Yarn
-yarn android
-```
-
-### iOS
-
-For iOS, remember to install CocoaPods dependencies (this only needs to be run on first clone or after updating native deps).
-
-The first time you create a new project, run the Ruby bundler to install CocoaPods itself:
+### 1. Add the npm package
 
 ```sh
-bundle install
+npm install react-native-dailymotion-player
+# or
+yarn add react-native-dailymotion-player
 ```
 
-Then, and every time you update your native dependencies, run:
+### 2. Android
+
+Autolinking handles everything. No manual steps.
+
+Add the Dailymotion Maven repository to `android/build.gradle` (root-level `allprojects` block):
+
+```gradle
+allprojects {
+    repositories {
+        maven {
+            name = "DailymotionMavenRelease"
+            url = uri("https://mvn.dailymotion.com/repository/releases/")
+        }
+    }
+}
+```
+
+> `dependencyResolutionManagement` in `settings.gradle` does **not** work — RN's Gradle plugin overrides it. Use `allprojects` instead.
+
+### 3. iOS
+
+**Step 1 — Install pods:**
 
 ```sh
-bundle exec pod install
+cd ios && pod install
 ```
 
-For more information, please visit [CocoaPods Getting Started guide](https://guides.cocoapods.org/using/getting-started.html).
+**Step 2 — Add DailymotionPlayerSDK via Swift Package Manager:**
+
+The iOS SDK is distributed via SPM only. Open your workspace in Xcode:
 
 ```sh
-# Using npm
-npm run ios
-
-# OR using Yarn
-yarn ios
+open ios/YourApp.xcworkspace
 ```
 
-If everything is set up correctly, you should see your new app running in the Android Emulator, iOS Simulator, or your connected device.
+Then:
+1. **File → Add Package Dependencies...**
+2. Enter URL: `https://github.com/dailymotion/player-sdk-ios`
+3. When prompted for targets, add `DailymotionPlayerSDK` to **two targets**:
+   - Your app target (e.g. `YourApp`)
+   - The **`DailymotionPlayer`** pod target (found under the `Pods` project in the left sidebar)
 
-This is one way to run your app — you can also build it directly from Android Studio or Xcode.
+> Adding to the `DailymotionPlayer` pod target is required because the Swift source files are compiled as part of the pod, not the host app.
 
-## Step 3: Modify your app
+**Step 3 — Build:**
 
-Now that you have successfully run the app, let's make changes!
+```sh
+npx react-native run-ios
+```
 
-Open `App.tsx` in your text editor of choice and make some changes. When you save, your app will automatically update and reflect these changes — this is powered by [Fast Refresh](https://reactnative.dev/docs/fast-refresh).
+---
 
-When you want to forcefully reload, for example to reset the state of your app, you can perform a full reload:
+## Usage
 
-- **Android**: Press the <kbd>R</kbd> key twice or select **"Reload"** from the **Dev Menu**, accessed via <kbd>Ctrl</kbd> + <kbd>M</kbd> (Windows/Linux) or <kbd>Cmd ⌘</kbd> + <kbd>M</kbd> (macOS).
-- **iOS**: Press <kbd>R</kbd> in iOS Simulator.
+```tsx
+import { useRef } from 'react';
+import { View, StyleSheet } from 'react-native';
+import DailymotionPlayerView, { DailymotionPlayerRef } from 'react-native-dailymotion-player';
 
-## Congratulations! :tada:
+export default function MyScreen() {
+  const playerRef = useRef<DailymotionPlayerRef>(null);
 
-You've successfully run and modified your React Native App. :partying_face:
+  return (
+    <View style={styles.container}>
+      <DailymotionPlayerView
+        playerRef={playerRef}
+        playerId="x1kfiw"
+        videoId="x6idkj5"
+        style={styles.player}
+        onEvent={e => console.log(e.event, e)}
+      />
+    </View>
+  );
+}
 
-### Now what?
+const styles = StyleSheet.create({
+  container: { flex: 1 },
+  player: { width: '100%', aspectRatio: 16 / 9 },
+});
+```
 
-- If you want to add this new React Native code to an existing application, check out the [Integration guide](https://reactnative.dev/docs/integration-with-existing-apps).
-- If you're curious to learn more about React Native, check out the [docs](https://reactnative.dev/docs/getting-started).
+### Imperative controls
 
-# Troubleshooting
+```tsx
+// Playback
+playerRef.current?.play();
+playerRef.current?.pause();
+playerRef.current?.setMute(true);
+playerRef.current?.seekTo(30);                           // seconds
 
-If you're having issues getting the above steps to work, see the [Troubleshooting](https://reactnative.dev/docs/troubleshooting) page.
+// Quality & display
+playerRef.current?.setQuality('720');                    // '240'|'480'|'720'|'1080'|'default'
+playerRef.current?.setScaleMode('fit');                  // 'fit'|'fill'|'fillLeft'|'fillRight'|'fillTop'|'fillBottom'
+playerRef.current?.setPlaybackSpeed(1.5);                // 0.25|0.5|0.75|1|1.25|1.5|1.75|2
+playerRef.current?.setSubtitles('en');
+playerRef.current?.setFullscreen(true, 'landscapeLeft'); // 'landscapeLeft'|'landscapeRight'|'portrait'|'upsideDown'
 
-# Learn More
+// Content
+playerRef.current?.loadContent('videoId', 'playlistId?', 0 /* startTime */);
+playerRef.current?.destroy();
+```
 
-To learn more about React Native, take a look at the following resources:
+---
 
-- [React Native Website](https://reactnative.dev) - learn more about React Native.
-- [Getting Started](https://reactnative.dev/docs/environment-setup) - an **overview** of React Native and how setup your environment.
-- [Learn the Basics](https://reactnative.dev/docs/getting-started) - a **guided tour** of the React Native **basics**.
-- [Blog](https://reactnative.dev/blog) - read the latest official React Native **Blog** posts.
-- [`@facebook/react-native`](https://github.com/facebook/react-native) - the Open Source; GitHub **repository** for React Native.
+## Props
+
+| Prop | Type | Required | Description |
+|---|---|---|---|
+| `playerId` | `string` | Yes | Player ID from the Dailymotion dashboard |
+| `videoId` | `string` | Yes | Video ID to load |
+| `playlistId` | `string` | No | Playlist ID |
+| `playerParameters` | `PlayerParameters` | No | Initial player configuration (see below) |
+| `onEvent` | `(e: PlayerEvent) => void` | No | Unified event callback |
+| `style` | `StyleProp<ViewStyle>` | No | Standard RN style |
+| `playerRef` | `Ref<DailymotionPlayerRef>` | No | Imperative handle |
+
+### `playerParameters`
+
+```ts
+interface PlayerParameters {
+  startTime?: number;                // seconds
+  mute?: boolean;
+  loop?: boolean;
+  scaleMode?: 'fit' | 'fill' | 'fillLeft' | 'fillRight' | 'fillTop' | 'fillBottom';
+  allowAAID?: boolean;               // Android — advertising ID
+  allowIDFA?: boolean;               // iOS — advertising ID
+  defaultFullscreenOrientation?: 'landscapeLeft' | 'landscapeRight' | 'portrait' | 'upsideDown';
+  customConfig?: { [key: string]: string };
+}
+```
+
+---
+
+## Events
+
+All events fire through the single `onEvent` callback. `e.event` is the event name.
+
+### Player events
+
+| Event | Extra fields |
+|---|---|
+| `playerDidStart` | — |
+| `playerDidEnd` | — |
+| `playerDidCriticalPathReady` | — |
+| `playerDidChangeVideo` | `videoId` |
+| `playerDidChangeVolume` | `volume`, `muted` |
+| `playerDidChangeControls` | `isVisible` |
+| `playerDidChangeScaleMode` | `scaleMode` |
+| `playerDidChangePresentationMode` | — |
+| `playerDidReceivePlaybackPermission` | — |
+| `playerDidFailWithError` | `error` |
+| `playerOpenUrl` | `url` |
+
+### Video events
+
+| Event | Extra fields |
+|---|---|
+| `videoDidStart` | — |
+| `videoDidEnd` | — |
+| `videoDidPlay` | — |
+| `videoDidPause` | — |
+| `videoIsPlaying` | — |
+| `videoIsBuffering` | — |
+| `videoDidChangeTime` | `time` |
+| `videoDidChangeDuration` | `duration` |
+| `videoDidChangeQuality` | `quality` |
+| `videoDidReceiveQualitiesList` | `qualities` |
+| `videoDidChangeSubtitles` | `subtitles` |
+| `videoDidReceiveSubtitlesList` | `subtitlesList` |
+| `videoDidSeekStart` | `time` |
+| `videoDidSeekEnd` | — |
+| `videoIsInProgress` | `progressTime` |
+
+### Ad events
+
+| Event | Extra fields |
+|---|---|
+| `adDidStart` | `type`, `position` |
+| `adDidEnd` | — |
+| `adDidPlay` | — |
+| `adDidPause` | — |
+| `adDidImpression` | — |
+| `adDidClick` | — |
+| `adDidLoaded` | — |
+| `adDidChangeTime` | `time` |
+| `adDidChangeDuration` | `duration` |
+| `adDidReceiveCompanions` | — |
+
+---
+
+## Notes
+
+- **Physical device required** — videos time out on emulators/simulators due to network restrictions from the Dailymotion CDN.
+- Player IDs are created in the [Dailymotion Partner HQ](https://www.dailymotion.com/partner/x3k4d2/embed/players).
+- `destroy()` fully tears down the SDK player instance. Re-mounting the component or calling `loadContent()` after `destroy()` will not work — unmount and remount the component instead.
+
+---
+
+## Demo app
+
+The repository includes a demo app at `App.tsx`. To run it:
+
+```sh
+npm install
+
+# Android
+npx react-native run-android
+
+# iOS (after pod install + SPM setup above)
+npx react-native run-ios
+```
+
+Demo credentials:
+```ts
+const PLAYER_ID = 'x1kfiw';
+const VIDEO_ID  = 'x6idkj5';
+```
+
+---
+
+## References
+
+- [Dailymotion Android SDK docs](https://developers.dailymotion.com/docs/getting-started-with-the-android-sdk)
+- [Dailymotion iOS SDK docs](https://developers.dailymotion.com/docs/getting-started-with-the-ios-sdk)
+- [Dailymotion iOS SDK — GitHub](https://github.com/dailymotion/player-sdk-ios)
