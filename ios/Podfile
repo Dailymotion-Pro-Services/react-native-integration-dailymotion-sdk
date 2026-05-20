@@ -6,6 +6,8 @@ require Pod::Executable.execute_command('node', ['-p',
   )', __dir__]).strip
 
 platform :ios, min_ios_version_supported
+workspace 'NewReactNativeDailymotionSDK'
+project 'NewReactNativeDailymotionSDK.xcodeproj'
 prepare_react_native_project!
 
 linkage = ENV['USE_FRAMEWORKS']
@@ -16,6 +18,9 @@ end
 
 target 'NewReactNativeDailymotionSDK' do
   config = use_native_modules!
+
+  # Local library pod — consumed by the demo app in this repo
+  pod 'DailymotionPlayer', :path => '..'
 
   use_react_native!(
     :path => config[:reactNativePath],
