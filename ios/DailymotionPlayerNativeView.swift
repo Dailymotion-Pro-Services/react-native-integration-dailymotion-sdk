@@ -269,16 +269,15 @@ class DailymotionPlayerNativeView: UIView, DMVideoDelegate, DMAdDelegate {
   // MARK: Player View
   private func addPlayerView(playerView: DMPlayerView) {
     self.playerView = playerView
+    playerView.translatesAutoresizingMaskIntoConstraints = true
     self.addSubview(playerView)
-
-    playerView.translatesAutoresizingMaskIntoConstraints = false
-    NSLayoutConstraint.activate([
-      playerView.topAnchor.constraint(equalTo: self.topAnchor),
-      playerView.leadingAnchor.constraint(equalTo: self.leadingAnchor),
-      playerView.widthAnchor.constraint(equalTo: self.widthAnchor),
-      playerView.heightAnchor.constraint(equalTo: self.heightAnchor),
-    ])
+    playerView.frame = self.bounds
     print("[DM] Player view added")
+  }
+
+  override func layoutSubviews() {
+    super.layoutSubviews()
+    playerView?.frame = self.bounds
   }
 
   private func updateViewIfNeeded() {
@@ -375,6 +374,13 @@ extension DailymotionPlayerNativeView: DMPlayerDelegate {
 
   func player(_ player: DMPlayerView, didChangePresentationMode presentationMode: DMPlayerView.PresentationMode) {
     sendEvent("playerDidChangePresentationMode")
+    if presentationMode == .inline {
+      if playerView?.superview !== self {
+        playerView?.removeFromSuperview()
+        if let pv = playerView { addSubview(pv) }
+      }
+      setNeedsLayout()
+    }
   }
 
   func player(_ player: DMPlayerView, didChangeScaleMode scaleMode: String) {

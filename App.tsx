@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   ScrollView,
   StatusBar,
@@ -31,7 +31,13 @@ const STICKY_DEFAULT_WIDTH = 280;
 const STICKY_MIN_WIDTH = 160;
 const STICKY_MAX_WIDTH = 380;
 
-function StickyPlayer({ playerId, videoId }: { playerId: string; videoId: string }) {
+function StickyPlayer({
+  playerId,
+  videoId,
+}: {
+  playerId: string;
+  videoId: string;
+}) {
   const translateX = useSharedValue(16);
   const translateY = useSharedValue(16);
   const savedX = useSharedValue(16);
@@ -40,7 +46,7 @@ function StickyPlayer({ playerId, videoId }: { playerId: string; videoId: string
   const savedWidth = useSharedValue(STICKY_DEFAULT_WIDTH);
 
   const pan = Gesture.Pan()
-    .onUpdate((e) => {
+    .onUpdate(e => {
       translateX.value = savedX.value + e.translationX;
       translateY.value = savedY.value + e.translationY;
     })
@@ -50,7 +56,7 @@ function StickyPlayer({ playerId, videoId }: { playerId: string; videoId: string
     });
 
   const pinch = Gesture.Pinch()
-    .onUpdate((e) => {
+    .onUpdate(e => {
       width.value = Math.min(
         STICKY_MAX_WIDTH,
         Math.max(STICKY_MIN_WIDTH, savedWidth.value * e.scale),
@@ -70,7 +76,9 @@ function StickyPlayer({ playerId, videoId }: { playerId: string; videoId: string
   }));
 
   return (
-    <View style={[StyleSheet.absoluteFill, { pointerEvents: 'box-none' }]}>
+    <GestureHandlerRootView
+      style={[StyleSheet.absoluteFill, { pointerEvents: 'box-none' }]}
+    >
       <GestureDetector gesture={Gesture.Simultaneous(pan, pinch)}>
         <Animated.View style={[styles.floatingPlayer, animatedStyle]}>
           <DailymotionPlayerView
@@ -80,7 +88,7 @@ function StickyPlayer({ playerId, videoId }: { playerId: string; videoId: string
           />
         </Animated.View>
       </GestureDetector>
-    </View>
+    </GestureHandlerRootView>
   );
 }
 
@@ -100,7 +108,9 @@ function PlayerDemo() {
       style={[styles.btn, active && styles.btnActive]}
       onPress={onPress}
     >
-      <Text style={[styles.btnText, active && styles.btnTextActive]}>{label}</Text>
+      <Text style={[styles.btnText, active && styles.btnTextActive]}>
+        {label}
+      </Text>
     </TouchableOpacity>
   );
 
@@ -141,7 +151,9 @@ function PlayerDemo() {
               <Text style={styles.eventEmpty}>—</Text>
             ) : (
               events.map((ev, i) => (
-                <Text key={i} style={styles.eventValue}>{ev}</Text>
+                <Text key={i} style={styles.eventValue}>
+                  {ev}
+                </Text>
               ))
             )}
           </ScrollView>
@@ -242,21 +254,17 @@ function PlayerDemo() {
         </View>
       </ScrollView>
 
-      {stickyVisible && (
-        <StickyPlayer playerId={PLAYER_ID} videoId={videoId} />
-      )}
+      {stickyVisible && <StickyPlayer playerId={PLAYER_ID} videoId={videoId} />}
     </>
   );
 }
 
 export default function App() {
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <SafeAreaProvider>
-        <StatusBar barStyle="dark-content" />
-        <PlayerDemo />
-      </SafeAreaProvider>
-    </GestureHandlerRootView>
+    <SafeAreaProvider>
+      <StatusBar barStyle="dark-content" />
+      <PlayerDemo />
+    </SafeAreaProvider>
   );
 }
 

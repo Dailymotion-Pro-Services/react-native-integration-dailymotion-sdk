@@ -5,7 +5,9 @@ import android.util.Log
 import android.view.View
 import android.widget.FrameLayout
 import androidx.fragment.app.DialogFragment
+import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
+import androidx.fragment.app.FragmentManager
 import com.dailymotion.player.android.sdk.Dailymotion
 import com.dailymotion.player.android.sdk.Orientation
 import com.dailymotion.player.android.sdk.PlayerParameters
@@ -27,7 +29,6 @@ import com.facebook.react.bridge.ReadableType
 import com.facebook.react.bridge.WritableMap
 import com.facebook.react.uimanager.ThemedReactContext
 import com.facebook.react.uimanager.UIManagerHelper
-import com.newreactnativedailymotionsdk.player.R
 
 class PlayerParametersBuilder {
     private var customConfig: Map<String, String> = mutableMapOf()
@@ -67,11 +68,33 @@ class DailymotionPlayerNativeView(context: ThemedReactContext?) : FrameLayout(co
     private var dmPlayer: PlayerView? = null
     private var playerInitialized: Boolean = false
 
-    private fun getReactContext(): ReactContext = context as ReactContext
-
-    init {
-        inflate(getReactContext(), R.layout.dm_player_container, this)
+    // Intercepts requestLayout() from PlayerView so DM SDK's internal UI layout
+    // requests (triggered by native control taps) don't propagate to React Native's
+    // Fabric layout pass, which would call PlayerView.onLayout() mid-gesture and
+    // flip the play/pause state.
+    private inner class PlayerContainerView(ctx: Context) : FrameLayout(ctx) {
+        override fun requestLayout() {
+            if (isLaidOut && width > 0 && height > 0) {
+                post {
+                    val child = getChildAt(0) ?: return@post
+                    child.measure(
+                        MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY),
+                        MeasureSpec.makeMeasureSpec(height, MeasureSpec.EXACTLY)
+                    )
+                    child.layout(0, 0, width, height)
+                }
+            } else {
+                super.requestLayout()
+            }
+        }
     }
+
+    private val playerContainerView: PlayerContainerView =
+        PlayerContainerView(context!!).also {
+            addView(it, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
+        }
+
+    private fun getReactContext(): ReactContext = context as ReactContext
 
     private fun sendEvent(eventName: String, data: WritableMap?) {
         try {
@@ -95,27 +118,10 @@ class DailymotionPlayerNativeView(context: ThemedReactContext?) : FrameLayout(co
         }
     }
 
-    override fun requestLayout() {
-        super.requestLayout()
-        post(measureAndLayout)
-    }
-
-    private val measureAndLayout = Runnable {
-        measure(
-            MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY),
-            MeasureSpec.makeMeasureSpec(height, MeasureSpec.EXACTLY)
-        )
-        layout(left, top, right, bottom)
-    }
 
     private fun loadThePlayer() {
-        val currentActivity = getReactContext().currentActivity ?: run {
+        getReactContext().currentActivity ?: run {
             Log.e(TAG, "currentActivity is null")
-            return
-        }
-
-        val playerContainerView = findViewById<FrameLayout>(R.id.playerContainerView) ?: run {
-            Log.e(TAG, "playerContainerView not found")
             return
         }
 
@@ -148,7 +154,7 @@ class DailymotionPlayerNativeView(context: ThemedReactContext?) : FrameLayout(co
             context,
             playerId = playerId,
             videoId = videoId,
-            playlistId = playlistId,
+            playlistId = playlistId.ifEmpty { null },
             playerParameters = playerParameters,
             playerSetupListener = object : Dailymotion.PlayerSetupListener {
                 override fun onPlayerSetupFailed(error: PlayerError) {
@@ -164,16 +170,37 @@ class DailymotionPlayerNativeView(context: ThemedReactContext?) : FrameLayout(co
                         LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT)
                     )
                     Log.d(TAG, "Player added to view hierarchy")
-                    runTheVideo()
+                    // createPlayer() already loaded videoId — no second loadContent() needed.
                 }
             },
             playerListener = object : PlayerListener {
                 override fun onFullscreenRequested(playerDialogFragment: DialogFragment) {
                     super.onFullscreenRequested(playerDialogFragment)
-                    val activity = getReactContext().currentActivity as? FragmentActivity
-                    activity?.supportFragmentManager?.let {
-                        playerDialogFragment.show(it, "dmPlayerFullscreenFragment")
-                    }
+                    val activity = getReactContext().currentActivity as? FragmentActivity ?: return
+                    val fm = activity.supportFragmentManager
+                    fm.registerFragmentLifecycleCallbacks(object : FragmentManager.FragmentLifecycleCallbacks() {
+                        override fun onFragmentDestroyed(fm: FragmentManager, f: Fragment) {
+                            if (f === playerDialogFragment) {
+                                fm.unregisterFragmentLifecycleCallbacks(this)
+                                post {
+                                    requestLayout()
+                                    val w = playerContainerView.width
+                                    val h = playerContainerView.height
+                                    dmPlayer?.apply {
+                                        if (w > 0 && h > 0) {
+                                            measure(
+                                                MeasureSpec.makeMeasureSpec(w, MeasureSpec.EXACTLY),
+                                                MeasureSpec.makeMeasureSpec(h, MeasureSpec.EXACTLY)
+                                            )
+                                            layout(0, 0, w, h)
+                                        }
+                                    }
+                                }
+                                sendEvent("onFullscreenExit", null)
+                            }
+                        }
+                    }, false)
+                    playerDialogFragment.show(fm, "dmPlayerFullscreenFragment")
                     sendEvent("onFullscreenRequested", null)
                 }
 
@@ -469,9 +496,6 @@ class DailymotionPlayerNativeView(context: ThemedReactContext?) : FrameLayout(co
         playerParameters = builder.build()
     }
 
-    private fun runTheVideo() {
-        dmPlayer?.loadContent(videoId = videoId, playlistId = playlistId, startTime = playerParameters.startTime)
-    }
 
     fun loadContent(videoId: String, playlistId: String?, startTime: Double) {
         dmPlayer?.loadContent(videoId = videoId, playlistId = playlistId, startTime = startTime.toLong())
