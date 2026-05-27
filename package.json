@@ -12,7 +12,8 @@
   },
   "files": [
     "src",
-    "android/dailymotionplayer",
+    "android/dailymotionplayer/src",
+    "android/dailymotionplayer/build.gradle",
     "ios/DailymotionPlayerNativeView.swift",
     "ios/DailymotionPlayerViewFactory.swift",
     "ios/DailymotionPlayerViewFactory.m",
