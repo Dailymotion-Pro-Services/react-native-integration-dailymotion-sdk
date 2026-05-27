@@ -134,7 +134,7 @@ const DailymotionPlayerView = ({
       videoId={videoId}
       playlistId={playlistId}
       playerParameters={playerParameters}
-      style={[{ backgroundColor: 'black' }, style]}
+      style={style}
       onEvent={handleEvent}
     />
   );

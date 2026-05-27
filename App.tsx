@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import {
   ScrollView,
   StatusBar,
@@ -32,89 +32,6 @@ const STICKY_DEFAULT_WIDTH = 280;
 const STICKY_MIN_WIDTH = 160;
 const STICKY_MAX_WIDTH = 380;
 
-function StickyPlayer({
-  playerId,
-  videoId,
-  playerRef,
-  onEvent,
-  onClose,
-}: {
-  playerId: string;
-  videoId: string;
-  playerRef: React.RefObject<DailymotionPlayerRef | null>;
-  onEvent: (e: { event: string; [key: string]: any }) => void;
-  onClose: () => void;
-}) {
-  const translateX = useSharedValue(16);
-  const translateY = useSharedValue(16);
-  const savedX = useSharedValue(16);
-  const savedY = useSharedValue(16);
-  const width = useSharedValue(STICKY_DEFAULT_WIDTH);
-  const savedWidth = useSharedValue(STICKY_DEFAULT_WIDTH);
-
-  const pan = Gesture.Pan()
-    .onUpdate(e => {
-      translateX.value = savedX.value + e.translationX;
-      translateY.value = savedY.value + e.translationY;
-    })
-    .onEnd(() => {
-      savedX.value = translateX.value;
-      savedY.value = translateY.value;
-    });
-
-  const resizePan = Gesture.Pan()
-    .onBegin(() => {
-      savedWidth.value = width.value;
-    })
-    .onUpdate(e => {
-      width.value = Math.min(
-        STICKY_MAX_WIDTH,
-        Math.max(STICKY_MIN_WIDTH, savedWidth.value + e.translationX),
-      );
-    })
-    .onEnd(() => {
-      savedWidth.value = width.value;
-    });
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [
-      { translateX: translateX.value },
-      { translateY: translateY.value },
-    ],
-    width: width.value,
-    height: width.value / ASPECT_RATIO,
-  }));
-
-  // Regular View (not GestureHandlerRootView) so pointerEvents="box-none" works correctly.
-  // GestureHandlerRootView lives at the app root — GestureDetector works anywhere inside it.
-  return (
-    <View pointerEvents="box-none" style={StyleSheet.absoluteFill}>
-      <GestureDetector gesture={pan}>
-        <Animated.View style={[styles.floatingPlayer, animatedStyle]}>
-          <DailymotionPlayerView
-            playerRef={playerRef}
-            playerId={playerId}
-            videoId={videoId}
-            style={{ flex: 1 }}
-            onEvent={onEvent}
-          />
-          <View style={styles.controlsBar}>
-            <Text style={styles.dragHandle}>⠿</Text>
-            <TouchableOpacity style={styles.controlBtn} onPress={onClose}>
-              <Text style={styles.controlBtnText}>✕</Text>
-            </TouchableOpacity>
-          </View>
-          <GestureDetector gesture={resizePan}>
-            <View style={styles.resizeHandle}>
-              <Text style={styles.resizeHandleIcon}>⤡</Text>
-            </View>
-          </GestureDetector>
-        </Animated.View>
-      </GestureDetector>
-    </View>
-  );
-}
-
 function PlayerDemo() {
   const insets = useSafeAreaInsets();
   const { width: screenWidth } = useWindowDimensions();
@@ -127,6 +44,100 @@ function PlayerDemo() {
   const [stickyMode, setStickyMode] = useState(false);
 
   const inlinePlayerHeight = screenWidth / ASPECT_RATIO;
+
+  // Scroll tracking for inline player positioning
+  const scrollViewRef = useRef<ScrollView>(null);
+  const scrollY = useSharedValue(0);
+
+  // Sticky player drag position
+  const translateX = useSharedValue(16);
+  const translateY = useSharedValue(16);
+  const savedX = useSharedValue(16);
+  const savedY = useSharedValue(16);
+
+  // Sticky player resize
+  const stickyWidth = useSharedValue(STICKY_DEFAULT_WIDTH);
+  const savedStickyWidth = useSharedValue(STICKY_DEFAULT_WIDTH);
+
+  // Mode flag for animated style worklet (0=inline, 1=sticky)
+  const isStickyShared = useSharedValue(0);
+
+  const pan = useMemo(
+    () =>
+      Gesture.Pan()
+        .enabled(stickyMode)
+        .onUpdate(e => {
+          translateX.value = savedX.value + e.translationX;
+          translateY.value = savedY.value + e.translationY;
+        })
+        .onEnd(() => {
+          savedX.value = translateX.value;
+          savedY.value = translateY.value;
+        }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [stickyMode],
+  );
+
+  const resizePan = useMemo(
+    () =>
+      Gesture.Pan()
+        .enabled(stickyMode)
+        .onBegin(() => {
+          savedStickyWidth.value = stickyWidth.value;
+        })
+        .onUpdate(e => {
+          stickyWidth.value = Math.min(
+            STICKY_MAX_WIDTH,
+            Math.max(STICKY_MIN_WIDTH, savedStickyWidth.value + e.translationX),
+          );
+        })
+        .onEnd(() => {
+          savedStickyWidth.value = stickyWidth.value;
+        }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [stickyMode],
+  );
+
+  // Player position styles - switches between inline (full-width, follows scroll)
+  // and sticky (floating PiP, draggable) modes
+  const playerAnimatedStyle = useAnimatedStyle(() => {
+    if (isStickyShared.value === 0) {
+      return {
+        position: 'absolute' as const,
+        left: 0,
+        top: 0,
+        width: screenWidth,
+        height: inlinePlayerHeight,
+        borderRadius: 0,
+        overflow: 'hidden' as const,
+        transform: [{ translateY: -scrollY.value }],
+      };
+    }
+    return {
+      position: 'absolute' as const,
+      top: 0,
+      left: 0,
+      transform: [
+        { translateX: translateX.value },
+        { translateY: translateY.value },
+      ],
+      width: stickyWidth.value,
+      height: stickyWidth.value / ASPECT_RATIO,
+      borderRadius: 8,
+      overflow: 'hidden' as const,
+    };
+  });
+
+  const toggleSticky = (next: boolean) => {
+    isStickyShared.value = next ? 1 : 0;
+
+    if (!next) {
+      // Scroll to top when exiting sticky so inline player is visible
+      scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+    }
+
+    setStickyMode(next);
+  };
 
   const btn = (label: string, onPress: () => void, active?: boolean) => (
     <TouchableOpacity
@@ -143,24 +154,24 @@ function PlayerDemo() {
   return (
     <View style={styles.container}>
       <ScrollView
+        ref={scrollViewRef}
         style={styles.scroll}
         contentContainerStyle={[
           styles.content,
           { paddingBottom: insets.bottom + 16 },
         ]}
+        onScroll={e => {
+          scrollY.value = e.nativeEvent.contentOffset.y;
+        }}
+        scrollEventThrottle={16}
       >
-        {/* Inline player — normal flow element, scrolls with content */}
-        {!stickyMode && (
-          <View style={styles.inlinePlayer}>
-            <DailymotionPlayerView
-              playerRef={playerRef}
-              playerId={PLAYER_ID}
-              videoId={videoId}
-              style={{ width: '100%', height: inlinePlayerHeight }}
-              onEvent={e => setEvents(prev => [e.event, ...prev])}
-            />
-          </View>
-        )}
+        {/* Placeholder reserves space in scroll content where inline player overlays */}
+        <View
+          style={[
+            styles.inlinePlayerPlaceholder,
+            { height: inlinePlayerHeight },
+          ]}
+        />
 
         <Text style={styles.title}>Dailymotion Player Demo</Text>
 
@@ -255,8 +266,8 @@ function PlayerDemo() {
           Drag to move · Drag corner to resize
         </Text>
         <View style={styles.row}>
-          {btn('▣  Sticky', () => setStickyMode(true), stickyMode)}
-          {btn('✕  Exit', () => setStickyMode(false))}
+          {btn('▣  Sticky', () => toggleSticky(true), stickyMode)}
+          {btn('✕  Exit', () => toggleSticky(false))}
         </View>
 
         {/* Load different video */}
@@ -284,16 +295,43 @@ function PlayerDemo() {
         </View>
       </ScrollView>
 
-      {/* Floating PiP overlay — only active in sticky mode */}
-      {stickyMode && (
-        <StickyPlayer
-          playerId={PLAYER_ID}
-          videoId={videoId}
-          playerRef={playerRef}
-          onEvent={e => setEvents(prev => [e.event, ...prev])}
-          onClose={() => setStickyMode(false)}
-        />
-      )}
+      {/* Always-mounted player overlay - repositions between inline and sticky modes */}
+      <View pointerEvents="box-none" style={StyleSheet.absoluteFill}>
+        <GestureDetector gesture={pan}>
+          <Animated.View
+            style={[
+              stickyMode ? styles.stickyElevation : null,
+              playerAnimatedStyle,
+            ]}
+          >
+            <DailymotionPlayerView
+              playerRef={playerRef}
+              playerId={PLAYER_ID}
+              videoId={videoId}
+              style={{ flex: 1, backgroundColor: 'red' }}
+              onEvent={e => setEvents(prev => [e.event, ...prev])}
+            />
+            {stickyMode && (
+              <View style={styles.controlsBar}>
+                <Text style={styles.dragHandle}>⠿</Text>
+                <TouchableOpacity
+                  style={styles.controlBtn}
+                  onPress={() => toggleSticky(false)}
+                >
+                  <Text style={styles.controlBtnText}>✕</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+            {stickyMode && (
+              <GestureDetector gesture={resizePan}>
+                <View style={styles.resizeHandle}>
+                  <Text style={styles.resizeHandleIcon}>⤡</Text>
+                </View>
+              </GestureDetector>
+            )}
+          </Animated.View>
+        </GestureDetector>
+      </View>
     </View>
   );
 }
@@ -329,17 +367,13 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     color: '#111',
   },
-  inlinePlayer: {
+  inlinePlayerPlaceholder: {
     marginTop: -16,
     marginHorizontal: -16,
-    overflow: 'hidden',
     backgroundColor: '#000',
   },
-  floatingPlayer: {
-    position: 'absolute',
+  stickyElevation: {
     elevation: 10,
-    borderRadius: 8,
-    overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
