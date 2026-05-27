@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import {
   ScrollView,
   StatusBar,
@@ -7,6 +7,7 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  useWindowDimensions,
 } from 'react-native';
 import {
   SafeAreaProvider,
@@ -34,9 +35,15 @@ const STICKY_MAX_WIDTH = 380;
 function StickyPlayer({
   playerId,
   videoId,
+  playerRef,
+  onEvent,
+  onClose,
 }: {
   playerId: string;
   videoId: string;
+  playerRef: React.RefObject<DailymotionPlayerRef | null>;
+  onEvent: (e: { event: string; [key: string]: any }) => void;
+  onClose: () => void;
 }) {
   const translateX = useSharedValue(16);
   const translateY = useSharedValue(16);
@@ -55,11 +62,14 @@ function StickyPlayer({
       savedY.value = translateY.value;
     });
 
-  const pinch = Gesture.Pinch()
+  const resizePan = Gesture.Pan()
+    .onBegin(() => {
+      savedWidth.value = width.value;
+    })
     .onUpdate(e => {
       width.value = Math.min(
         STICKY_MAX_WIDTH,
-        Math.max(STICKY_MIN_WIDTH, savedWidth.value * e.scale),
+        Math.max(STICKY_MIN_WIDTH, savedWidth.value + e.translationX),
       );
     })
     .onEnd(() => {
@@ -75,32 +85,48 @@ function StickyPlayer({
     height: width.value / ASPECT_RATIO,
   }));
 
+  // Regular View (not GestureHandlerRootView) so pointerEvents="box-none" works correctly.
+  // GestureHandlerRootView lives at the app root — GestureDetector works anywhere inside it.
   return (
-    <GestureHandlerRootView
-      style={[StyleSheet.absoluteFill, { pointerEvents: 'box-none' }]}
-    >
-      <GestureDetector gesture={Gesture.Simultaneous(pan, pinch)}>
+    <View pointerEvents="box-none" style={StyleSheet.absoluteFill}>
+      <GestureDetector gesture={pan}>
         <Animated.View style={[styles.floatingPlayer, animatedStyle]}>
           <DailymotionPlayerView
+            playerRef={playerRef}
             playerId={playerId}
             videoId={videoId}
             style={{ flex: 1 }}
+            onEvent={onEvent}
           />
+          <View style={styles.controlsBar}>
+            <Text style={styles.dragHandle}>⠿</Text>
+            <TouchableOpacity style={styles.controlBtn} onPress={onClose}>
+              <Text style={styles.controlBtnText}>✕</Text>
+            </TouchableOpacity>
+          </View>
+          <GestureDetector gesture={resizePan}>
+            <View style={styles.resizeHandle}>
+              <Text style={styles.resizeHandleIcon}>⤡</Text>
+            </View>
+          </GestureDetector>
         </Animated.View>
       </GestureDetector>
-    </GestureHandlerRootView>
+    </View>
   );
 }
 
 function PlayerDemo() {
   const insets = useSafeAreaInsets();
+  const { width: screenWidth } = useWindowDimensions();
   const playerRef = useRef<DailymotionPlayerRef>(null);
 
   const [videoId, setVideoId] = useState(DEFAULT_VIDEO_ID);
   const [inputVideoId, setInputVideoId] = useState(DEFAULT_VIDEO_ID);
   const [isMuted, setIsMuted] = useState(false);
   const [events, setEvents] = useState<string[]>([]);
-  const [stickyVisible, setStickyVisible] = useState(false);
+  const [stickyMode, setStickyMode] = useState(false);
+
+  const inlinePlayerHeight = screenWidth / ASPECT_RATIO;
 
   const btn = (label: string, onPress: () => void, active?: boolean) => (
     <TouchableOpacity
@@ -115,7 +141,7 @@ function PlayerDemo() {
   );
 
   return (
-    <>
+    <View style={styles.container}>
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={[
@@ -123,18 +149,20 @@ function PlayerDemo() {
           { paddingBottom: insets.bottom + 16 },
         ]}
       >
-        <Text style={styles.title}>Dailymotion Player Demo</Text>
+        {/* Inline player — normal flow element, scrolls with content */}
+        {!stickyMode && (
+          <View style={styles.inlinePlayer}>
+            <DailymotionPlayerView
+              playerRef={playerRef}
+              playerId={PLAYER_ID}
+              videoId={videoId}
+              style={{ width: '100%', height: inlinePlayerHeight }}
+              onEvent={e => setEvents(prev => [e.event, ...prev])}
+            />
+          </View>
+        )}
 
-        {/* Player */}
-        <View style={styles.playerWrapper}>
-          <DailymotionPlayerView
-            playerRef={playerRef}
-            playerId={PLAYER_ID}
-            videoId={videoId}
-            style={styles.player}
-            onEvent={e => setEvents(prev => [e.event, ...prev])}
-          />
-        </View>
+        <Text style={styles.title}>Dailymotion Player Demo</Text>
 
         {/* Events log */}
         <View style={styles.eventBox}>
@@ -223,10 +251,12 @@ function PlayerDemo() {
 
         {/* Sticky Player */}
         <Text style={styles.sectionTitle}>Sticky Player</Text>
-        <Text style={styles.sectionHint}>Drag to move · Pinch to resize</Text>
+        <Text style={styles.sectionHint}>
+          Drag to move · Drag corner to resize
+        </Text>
         <View style={styles.row}>
-          {btn('▣  Show', () => setStickyVisible(true), stickyVisible)}
-          {btn('✕  Hide', () => setStickyVisible(false))}
+          {btn('▣  Sticky', () => setStickyMode(true), stickyMode)}
+          {btn('✕  Exit', () => setStickyMode(false))}
         </View>
 
         {/* Load different video */}
@@ -254,21 +284,36 @@ function PlayerDemo() {
         </View>
       </ScrollView>
 
-      {stickyVisible && <StickyPlayer playerId={PLAYER_ID} videoId={videoId} />}
-    </>
+      {/* Floating PiP overlay — only active in sticky mode */}
+      {stickyMode && (
+        <StickyPlayer
+          playerId={PLAYER_ID}
+          videoId={videoId}
+          playerRef={playerRef}
+          onEvent={e => setEvents(prev => [e.event, ...prev])}
+          onClose={() => setStickyMode(false)}
+        />
+      )}
+    </View>
   );
 }
 
 export default function App() {
   return (
-    <SafeAreaProvider>
-      <StatusBar barStyle="dark-content" />
-      <PlayerDemo />
-    </SafeAreaProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+        <StatusBar barStyle="dark-content" />
+        <PlayerDemo />
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#f5f5f5',
+  },
   scroll: {
     flex: 1,
     backgroundColor: '#f5f5f5',
@@ -284,14 +329,21 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     color: '#111',
   },
-  playerWrapper: {
-    borderRadius: 8,
+  inlinePlayer: {
+    marginTop: -16,
+    marginHorizontal: -16,
     overflow: 'hidden',
     backgroundColor: '#000',
   },
-  player: {
-    width: '100%',
-    aspectRatio: 16 / 9,
+  floatingPlayer: {
+    position: 'absolute',
+    elevation: 10,
+    borderRadius: 8,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
   },
   eventBox: {
     backgroundColor: '#fff',
@@ -382,15 +434,50 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#111',
   },
-  floatingPlayer: {
+  controlsBar: {
     position: 'absolute',
-    zIndex: 999,
-    elevation: 10,
-    borderRadius: 8,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
+    top: 0,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 6,
+    paddingVertical: 4,
+    gap: 4,
+    zIndex: 10,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+  },
+  dragHandle: {
+    flex: 1,
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 14,
+  },
+  controlBtn: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  controlBtnText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  resizeHandle: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 28,
+    height: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    borderTopLeftRadius: 6,
+  },
+  resizeHandleIcon: {
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 14,
   },
 });
