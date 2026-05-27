@@ -6,6 +6,7 @@ import DailymotionPlayerSDK
 class DailymotionPlayerNativeView: UIView, DMVideoDelegate, DMAdDelegate {
   // MARK: Properties
   static var viewRegistry: [NSNumber: DailymotionPlayerNativeView] = [:]
+  private static let creationQueue = DispatchQueue(label: "com.dailymotion.player.creation", qos: .userInitiated)
 
   weak var parentViewController: UIViewController?
   var playerView: DMPlayerView?
@@ -196,23 +197,34 @@ class DailymotionPlayerNativeView: UIView, DMVideoDelegate, DMAdDelegate {
     playerInitialized = true
     print("[DM] Creating player — playerId: \(playerId), videoId: \(videoId)")
 
-    Dailymotion.createPlayer(
-      playerId: playerId,
-      videoId: videoId,
-      playerParameters: buildPlayerParameters(),
-      playerDelegate: self,
-      videoDelegate: self,
-      adDelegate: self,
-      logLevels: [.all]
-    ) { [weak self] playerView, error in
-      guard let self = self else { return }
-      if let error = error {
-        self.handlePlayerError(error: error)
-      } else if let playerView = playerView {
-        DispatchQueue.main.async {
-          self.addPlayerView(playerView: playerView)
+    let playerId = self.playerId
+    let videoId = self.videoId
+    let parameters = buildPlayerParameters()
+
+    DailymotionPlayerNativeView.creationQueue.async { [weak self] in
+      let semaphore = DispatchSemaphore(value: 0)
+      DispatchQueue.main.async {
+        Dailymotion.createPlayer(
+          playerId: playerId,
+          videoId: videoId,
+          playerParameters: parameters,
+          playerDelegate: self,
+          videoDelegate: self,
+          adDelegate: self,
+          logLevels: [.all]
+        ) { [weak self] playerView, error in
+          defer { semaphore.signal() }
+          guard let self = self else { return }
+          if let error = error {
+            self.handlePlayerError(error: error)
+          } else if let playerView = playerView {
+            DispatchQueue.main.async {
+              self.addPlayerView(playerView: playerView)
+            }
+          }
         }
       }
+      semaphore.wait()
     }
   }
 
@@ -257,16 +269,15 @@ class DailymotionPlayerNativeView: UIView, DMVideoDelegate, DMAdDelegate {
   // MARK: Player View
   private func addPlayerView(playerView: DMPlayerView) {
     self.playerView = playerView
+    playerView.translatesAutoresizingMaskIntoConstraints = true
     self.addSubview(playerView)
-
-    playerView.translatesAutoresizingMaskIntoConstraints = false
-    NSLayoutConstraint.activate([
-      playerView.topAnchor.constraint(equalTo: self.topAnchor),
-      playerView.leadingAnchor.constraint(equalTo: self.leadingAnchor),
-      playerView.widthAnchor.constraint(equalTo: self.widthAnchor),
-      playerView.heightAnchor.constraint(equalTo: self.heightAnchor),
-    ])
+    playerView.frame = self.bounds
     print("[DM] Player view added")
+  }
+
+  override func layoutSubviews() {
+    super.layoutSubviews()
+    playerView?.frame = self.bounds
   }
 
   private func updateViewIfNeeded() {
@@ -363,6 +374,13 @@ extension DailymotionPlayerNativeView: DMPlayerDelegate {
 
   func player(_ player: DMPlayerView, didChangePresentationMode presentationMode: DMPlayerView.PresentationMode) {
     sendEvent("playerDidChangePresentationMode")
+    if presentationMode == .inline {
+      if playerView?.superview !== self {
+        playerView?.removeFromSuperview()
+        if let pv = playerView { addSubview(pv) }
+      }
+      setNeedsLayout()
+    }
   }
 
   func player(_ player: DMPlayerView, didChangeScaleMode scaleMode: String) {

@@ -21,7 +21,7 @@ android {
 
 dependencies {
     implementation("com.facebook.react:react-android")
-    implementation 'com.dailymotion.player.android:sdk:2.1.1'
+    api 'com.dailymotion.player.android:sdk:2.1.1'
     implementation 'androidx.fragment:fragment:1.8.9'
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2'
     implementation 'com.dailymotion.player.android:ads:2.1.1'

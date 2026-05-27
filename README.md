@@ -3,11 +3,11 @@
 React Native native UI component wrapping the Dailymotion Player SDK.
 Supports **Android** and **iOS** with New Architecture (Fabric interop / bridgeless).
 
-| | Android | iOS |
-|---|---|---|
-| SDK | Dailymotion Android SDK 2.1.1 | Dailymotion iOS SDK (SPM) |
+|              | Android                                  | iOS                               |
+| ------------ | ---------------------------------------- | --------------------------------- |
+| SDK          | Dailymotion Android SDK 2.1.1            | Dailymotion iOS SDK (SPM)         |
 | Architecture | New Architecture (`newArchEnabled=true`) | New Architecture (Fabric interop) |
-| Min version | API 21 | iOS 14.0 |
+| Min version  | API 21                                   | iOS 14.0                          |
 
 ---
 
@@ -65,6 +65,7 @@ open ios/YourApp.xcworkspace
 ```
 
 Then:
+
 1. **File → Add Package Dependencies...**
 2. Enter URL: `https://github.com/dailymotion/player-sdk-ios`
 3. When prompted for targets, add `DailymotionPlayerSDK` to **two targets**:
@@ -86,7 +87,9 @@ npx react-native run-ios
 ```tsx
 import { useRef } from 'react';
 import { View, StyleSheet } from 'react-native';
-import DailymotionPlayerView, { DailymotionPlayerRef } from 'react-native-dailymotion-sdk';
+import DailymotionPlayerView, {
+  DailymotionPlayerRef,
+} from 'react-native-dailymotion-sdk';
 
 export default function MyScreen() {
   const playerRef = useRef<DailymotionPlayerRef>(null);
@@ -117,12 +120,12 @@ const styles = StyleSheet.create({
 playerRef.current?.play();
 playerRef.current?.pause();
 playerRef.current?.setMute(true);
-playerRef.current?.seekTo(30);                           // seconds
+playerRef.current?.seekTo(30); // seconds
 
 // Quality & display
-playerRef.current?.setQuality('720');                    // '240'|'480'|'720'|'1080'|'default'
-playerRef.current?.setScaleMode('fit');                  // 'fit'|'fill'|'fillLeft'|'fillRight'|'fillTop'|'fillBottom'
-playerRef.current?.setPlaybackSpeed(1.5);                // 0.25|0.5|0.75|1|1.25|1.5|1.75|2
+playerRef.current?.setQuality('720'); // '240'|'480'|'720'|'1080'|'default'
+playerRef.current?.setScaleMode('fit'); // 'fit'|'fill'|'fillLeft'|'fillRight'|'fillTop'|'fillBottom'
+playerRef.current?.setPlaybackSpeed(1.5); // 0.25|0.5|0.75|1|1.25|1.5|1.75|2
 playerRef.current?.setSubtitles('en');
 playerRef.current?.setFullscreen(true, 'landscapeLeft'); // 'landscapeLeft'|'landscapeRight'|'portrait'|'upsideDown'
 
@@ -131,31 +134,96 @@ playerRef.current?.loadContent('videoId', 'playlistId?', 0 /* startTime */);
 playerRef.current?.destroy();
 ```
 
+### Sticky / Floating Player
+
+The demo app (`App.tsx`) includes a production-ready sticky player that switches between inline (full-width, scrolls with content) and floating PiP modes. See the full implementation in `App.tsx`.
+
+**Key features:**
+
+- Toggle between inline and sticky modes via button
+- Drag player anywhere on screen when sticky
+- Resize via bottom-right corner handle
+- Single player instance (never unmounts during transitions)
+- Smooth GPU-accelerated scroll performance
+- Playback continues uninterrupted across mode switches
+
+**Requirements:**
+
+- [`react-native-gesture-handler`](https://docs.swmansion.com/react-native-gesture-handler/) ≥ 2.0
+- [`react-native-reanimated`](https://docs.swmansion.com/react-native-reanimated/) ≥ 3.0
+
+```sh
+npm install react-native-gesture-handler react-native-reanimated
+```
+
+**Architecture:**
+
+```tsx
+// Single DailymotionPlayerView, always mounted as absolute overlay
+<View pointerEvents="box-none" style={StyleSheet.absoluteFill}>
+  <GestureDetector gesture={pan}>
+    <Animated.View style={playerAnimatedStyle}>
+      <DailymotionPlayerView ... />
+    </Animated.View>
+  </GestureDetector>
+</View>
+
+// Animated style switches between modes:
+const playerAnimatedStyle = useAnimatedStyle(() => {
+  if (inlineMode) {
+    return {
+      top: 0,
+      left: 0,
+      width: screenWidth,
+      transform: [{ translateY: -scrollY.value }],  // Follows scroll
+    };
+  }
+  return {
+    transform: [{ translateX: x }, { translateY: y }],  // Draggable
+    width: stickyWidth,
+  };
+});
+```
+
+Player positioned via `transform` (GPU-accelerated) instead of layout props for smooth 60fps scroll.
+
+> Full implementation with gesture handlers, resize logic, and mode switching available in `App.tsx`.
+
 ---
 
 ## Props
 
-| Prop | Type | Required | Description |
-|---|---|---|---|
-| `playerId` | `string` | Yes | Player ID from the Dailymotion dashboard |
-| `videoId` | `string` | Yes | Video ID to load |
-| `playlistId` | `string` | No | Playlist ID |
-| `playerParameters` | `PlayerParameters` | No | Initial player configuration (see below) |
-| `onEvent` | `(e: PlayerEvent) => void` | No | Unified event callback |
-| `style` | `StyleProp<ViewStyle>` | No | Standard RN style |
-| `playerRef` | `Ref<DailymotionPlayerRef>` | No | Imperative handle |
+| Prop               | Type                        | Required | Description                              |
+| ------------------ | --------------------------- | -------- | ---------------------------------------- |
+| `playerId`         | `string`                    | Yes      | Player ID from the Dailymotion dashboard |
+| `videoId`          | `string`                    | Yes      | Video ID to load                         |
+| `playlistId`       | `string`                    | No       | Playlist ID                              |
+| `playerParameters` | `PlayerParameters`          | No       | Initial player configuration (see below) |
+| `onEvent`          | `(e: PlayerEvent) => void`  | No       | Unified event callback                   |
+| `style`            | `StyleProp<ViewStyle>`      | No       | Standard RN style                        |
+| `playerRef`        | `Ref<DailymotionPlayerRef>` | No       | Imperative handle                        |
 
 ### `playerParameters`
 
 ```ts
 interface PlayerParameters {
-  startTime?: number;                // seconds
+  startTime?: number; // seconds
   mute?: boolean;
   loop?: boolean;
-  scaleMode?: 'fit' | 'fill' | 'fillLeft' | 'fillRight' | 'fillTop' | 'fillBottom';
-  allowAAID?: boolean;               // Android — advertising ID
-  allowIDFA?: boolean;               // iOS — advertising ID
-  defaultFullscreenOrientation?: 'landscapeLeft' | 'landscapeRight' | 'portrait' | 'upsideDown';
+  scaleMode?:
+    | 'fit'
+    | 'fill'
+    | 'fillLeft'
+    | 'fillRight'
+    | 'fillTop'
+    | 'fillBottom';
+  allowAAID?: boolean; // Android — advertising ID
+  allowIDFA?: boolean; // iOS — advertising ID
+  defaultFullscreenOrientation?:
+    | 'landscapeLeft'
+    | 'landscapeRight'
+    | 'portrait'
+    | 'upsideDown';
   customConfig?: { [key: string]: string };
 }
 ```
@@ -168,54 +236,54 @@ All events fire through the single `onEvent` callback. `e.event` is the event na
 
 ### Player events
 
-| Event | Extra fields |
-|---|---|
-| `playerDidStart` | — |
-| `playerDidEnd` | — |
-| `playerDidCriticalPathReady` | — |
-| `playerDidChangeVideo` | `videoId` |
-| `playerDidChangeVolume` | `volume`, `muted` |
-| `playerDidChangeControls` | `isVisible` |
-| `playerDidChangeScaleMode` | `scaleMode` |
-| `playerDidChangePresentationMode` | — |
-| `playerDidReceivePlaybackPermission` | — |
-| `playerDidFailWithError` | `error` |
-| `playerOpenUrl` | `url` |
+| Event                                | Extra fields      |
+| ------------------------------------ | ----------------- |
+| `playerDidStart`                     | —                 |
+| `playerDidEnd`                       | —                 |
+| `playerDidCriticalPathReady`         | —                 |
+| `playerDidChangeVideo`               | `videoId`         |
+| `playerDidChangeVolume`              | `volume`, `muted` |
+| `playerDidChangeControls`            | `isVisible`       |
+| `playerDidChangeScaleMode`           | `scaleMode`       |
+| `playerDidChangePresentationMode`    | —                 |
+| `playerDidReceivePlaybackPermission` | —                 |
+| `playerDidFailWithError`             | `error`           |
+| `playerOpenUrl`                      | `url`             |
 
 ### Video events
 
-| Event | Extra fields |
-|---|---|
-| `videoDidStart` | — |
-| `videoDidEnd` | — |
-| `videoDidPlay` | — |
-| `videoDidPause` | — |
-| `videoIsPlaying` | — |
-| `videoIsBuffering` | — |
-| `videoDidChangeTime` | `time` |
-| `videoDidChangeDuration` | `duration` |
-| `videoDidChangeQuality` | `quality` |
-| `videoDidReceiveQualitiesList` | `qualities` |
-| `videoDidChangeSubtitles` | `subtitles` |
+| Event                          | Extra fields    |
+| ------------------------------ | --------------- |
+| `videoDidStart`                | —               |
+| `videoDidEnd`                  | —               |
+| `videoDidPlay`                 | —               |
+| `videoDidPause`                | —               |
+| `videoIsPlaying`               | —               |
+| `videoIsBuffering`             | —               |
+| `videoDidChangeTime`           | `time`          |
+| `videoDidChangeDuration`       | `duration`      |
+| `videoDidChangeQuality`        | `quality`       |
+| `videoDidReceiveQualitiesList` | `qualities`     |
+| `videoDidChangeSubtitles`      | `subtitles`     |
 | `videoDidReceiveSubtitlesList` | `subtitlesList` |
-| `videoDidSeekStart` | `time` |
-| `videoDidSeekEnd` | — |
-| `videoIsInProgress` | `progressTime` |
+| `videoDidSeekStart`            | `time`          |
+| `videoDidSeekEnd`              | —               |
+| `videoIsInProgress`            | `progressTime`  |
 
 ### Ad events
 
-| Event | Extra fields |
-|---|---|
-| `adDidStart` | `type`, `position` |
-| `adDidEnd` | — |
-| `adDidPlay` | — |
-| `adDidPause` | — |
-| `adDidImpression` | — |
-| `adDidClick` | — |
-| `adDidLoaded` | — |
-| `adDidChangeTime` | `time` |
-| `adDidChangeDuration` | `duration` |
-| `adDidReceiveCompanions` | — |
+| Event                    | Extra fields       |
+| ------------------------ | ------------------ |
+| `adDidStart`             | `type`, `position` |
+| `adDidEnd`               | —                  |
+| `adDidPlay`              | —                  |
+| `adDidPause`             | —                  |
+| `adDidImpression`        | —                  |
+| `adDidClick`             | —                  |
+| `adDidLoaded`            | —                  |
+| `adDidChangeTime`        | `time`             |
+| `adDidChangeDuration`    | `duration`         |
+| `adDidReceiveCompanions` | —                  |
 
 ---
 
@@ -229,7 +297,7 @@ All events fire through the single `onEvent` callback. `e.event` is the event na
 
 ## Demo app
 
-The repository includes a demo app at `App.tsx`. To run it:
+The repository includes a full-featured demo app at `App.tsx`. To run it:
 
 ```sh
 npm install
@@ -241,10 +309,20 @@ npx react-native run-android
 npx react-native run-ios
 ```
 
+**Demo features:**
+
+- Inline player (scrolls with content)
+- Sticky/floating PiP mode with drag & resize
+- All playback controls (play/pause/seek/speed/quality)
+- Fullscreen support with orientation control
+- Event logging
+- Video switching
+
 Demo credentials:
+
 ```ts
 const PLAYER_ID = 'x1kfiw';
-const VIDEO_ID  = 'x6idkj5';
+const VIDEO_ID = 'x6idkj5';
 ```
 
 ---
