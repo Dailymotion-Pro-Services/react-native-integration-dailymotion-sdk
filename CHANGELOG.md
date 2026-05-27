@@ -1,3 +1,8 @@
+## [1.0.2] - 2026-05-27
+
+
+
+
 # Changelog
 
 ## [1.0.1] - 2026-05-27
@@ -23,4 +28,3 @@ c3dbaa3 feat: rewrite as reusable RN library — SDK v2.1.1, RN 0.85.3, New Arch
 727733b :sparkles: upgrade react native to 0.76.5
 7b29581 :sparkles: iOS - Add react navigation
 ad6d792 :recycle: change player init implementation
-

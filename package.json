@@ -1,6 +1,6 @@
 {
   "name": "react-native-dailymotion-sdk",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "React Native native UI component wrapping the Dailymotion Player SDK (Android + iOS)",
   "main": "src/index.tsx",
   "module": "src/index.tsx",
