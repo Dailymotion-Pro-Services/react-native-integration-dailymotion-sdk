@@ -5,6 +5,7 @@
   "main": "src/index.tsx",
   "module": "src/index.tsx",
   "types": "src/index.tsx",
+  "expo": "./plugin/build/index.js",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -12,6 +13,8 @@
   },
   "files": [
     "src",
+    "app.plugin.js",
+    "plugin/build",
     "android/dailymotionplayer/src",
     "android/dailymotionplayer/build.gradle",
     "ios/DailymotionPlayerNativeView.swift",
@@ -34,16 +37,24 @@
     "ios": "react-native run-ios",
     "lint": "eslint .",
     "start": "react-native start",
-    "test": "jest"
+    "test": "jest",
+    "build:plugin": "tsc -p plugin/tsconfig.json"
   },
   "peerDependencies": {
     "react": "*",
-    "react-native": "*"
+    "react-native": "*",
+    "@expo/config-plugins": ">=7.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@expo/config-plugins": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
     "@babel/preset-env": "^7.25.3",
     "@babel/runtime": "^7.25.0",
+    "@expo/config-plugins": "^8.0.11",
     "@react-native-community/cli": "20.1.0",
     "@react-native-community/cli-platform-android": "20.1.0",
     "@react-native-community/cli-platform-ios": "20.1.0",
@@ -65,9 +76,5 @@
     "react-test-renderer": "19.2.3",
     "typescript": "^5.8.3"
   },
-  "dependencies": {
-    "react-native-gesture-handler": "^2.31.2",
-    "react-native-reanimated": "^4.3.1",
-    "react-native-worklets": "^0.8.3"
-  }
+  "dependencies": {}
 }
