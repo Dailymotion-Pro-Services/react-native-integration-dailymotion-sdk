@@ -63,4 +63,9 @@ git push origin "v${NEW_VERSION}"
 echo "Publishing to npm..."
 npm publish
 
+echo "Creating GitHub release..."
+gh release create "v${NEW_VERSION}" \
+  --title "v${NEW_VERSION}" \
+  --notes "${ENTRY}"
+
 echo "Released v${NEW_VERSION}"
