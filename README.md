@@ -29,9 +29,50 @@ npm install react-native-dailymotion-sdk
 yarn add react-native-dailymotion-sdk
 ```
 
-### 2. Android
+### 2. Configure native projects
 
-Autolinking handles everything. No manual steps.
+Choose the setup path that matches your project:
+
+---
+
+#### Option A — Expo (managed workflow or bare with `expo` installed)
+
+Add the plugin to `app.json`:
+
+```json
+{
+  "expo": {
+    "plugins": ["react-native-dailymotion-sdk"]
+  }
+}
+```
+
+Then run:
+
+```sh
+npx expo prebuild
+```
+
+The plugin automatically configures both platforms — no other manual steps required:
+
+- **Android**: injects the Dailymotion Maven repository into `android/build.gradle`
+- **iOS**: adds `DailymotionPlayerSDK` via Swift Package Manager to the app target and the `DailymotionPlayer` pod target
+
+#### Plugin options
+
+| Option | Type | Default | Description |
+| --- | --- | --- | --- |
+| `iosSdkVersion` | `string` | `"1.4.11"` | Version of `player-sdk-ios` to pin via SPM |
+
+```json
+["react-native-dailymotion-sdk", { "iosSdkVersion": "1.4.11" }]
+```
+
+---
+
+#### Option B — Bare React Native (no Expo)
+
+##### Android
 
 Add the Dailymotion Maven repository to `android/build.gradle` (root-level `allprojects` block):
 
@@ -48,7 +89,7 @@ allprojects {
 
 > `dependencyResolutionManagement` in `settings.gradle` does **not** work — RN's Gradle plugin overrides it. Use `allprojects` instead.
 
-### 3. iOS
+##### iOS
 
 **Step 1 — Install pods:**
 
@@ -79,40 +120,6 @@ Then:
 ```sh
 npx react-native run-ios
 ```
-
----
-
-## Expo / EAS Build
-
-Add the plugin to `app.json`:
-
-```json
-{
-  "expo": {
-    "plugins": ["react-native-dailymotion-sdk"]
-  }
-}
-```
-
-Then run:
-
-```sh
-npx expo prebuild
-```
-
-No other manual steps required — the plugin automatically configures the Dailymotion Maven repository (Android) and adds the iOS SDK via Swift Package Manager.
-
-### Options
-
-| Option | Type | Default | Description |
-| --- | --- | --- | --- |
-| `iosSdkVersion` | `string` | `"1.4.11"` | Version of `player-sdk-ios` to add via SPM |
-
-```json
-["react-native-dailymotion-sdk", { "iosSdkVersion": "1.4.11" }]
-```
-
-> **Note:** The iOS SPM package is added to the app target only. The `DailymotionPlayer` pod target resolves it via `FRAMEWORK_SEARCH_PATHS → $(BUILT_PRODUCTS_DIR)/PackageFrameworks` (already set in the podspec). If your EAS Build fails with a `DailymotionPlayerSDK` module-not-found error, open the generated workspace and manually add the package to the `DailymotionPlayer` pod target as described in the iOS section above.
 
 ---
 
