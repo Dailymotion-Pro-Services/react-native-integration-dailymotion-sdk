@@ -2,8 +2,11 @@ import {
   ConfigPlugin,
   withProjectBuildGradle,
   withXcodeProject,
+  withDangerousMod,
   createRunOncePlugin,
 } from '@expo/config-plugins';
+import * as fs from 'fs';
+import * as path from 'path';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -146,12 +149,81 @@ function withIosSpm(config: Parameters<ConfigPlugin>[0], { iosSdkVersion = IOS_S
 }
 
 // ---------------------------------------------------------------------------
+// iOS: inject Podfile post_install hook — adds SPM dep directly to the
+// DailymotionPlayer pod target so Xcode establishes build-order before
+// compiling the pod (FRAMEWORK_SEARCH_PATHS alone doesn't guarantee order).
+// ---------------------------------------------------------------------------
+
+const PODFILE_HOOK_MARKER = '# [react-native-dailymotion-sdk] DailymotionPlayerSDK SPM hook';
+
+function withIosPodfileSpmHook(
+  config: Parameters<ConfigPlugin>[0],
+  { iosSdkVersion = IOS_SDK_DEFAULT_VERSION }: Options,
+) {
+  return withDangerousMod(config, [
+    'ios',
+    (config) => {
+      const podfilePath = path.join(config.modRequest.platformProjectRoot, 'Podfile');
+      if (!fs.existsSync(podfilePath)) return config;
+
+      let podfile = fs.readFileSync(podfilePath, 'utf-8');
+      if (podfile.includes(PODFILE_HOOK_MARKER)) return config;
+
+      // CocoaPods only allows one post_install block — inject into the existing one.
+      // Expo places post_install indented inside the target block, so match leading whitespace.
+      const POST_INSTALL_RE = /^([ \t]*post_install\s+do\s+\|[^|]+\|[ \t]*)\r?$/m;
+      const injection = [
+        `  ${PODFILE_HOOK_MARKER}`,
+        `  require 'xcodeproj'`,
+        `  begin`,
+        `    pods_project = installer.pods_project`,
+        `    dm_target = pods_project.targets.find { |t| t.name == 'DailymotionPlayer' }`,
+        `    if dm_target && !(dm_target.package_product_dependencies.any? { |d| d.product_name == '${IOS_SPM_PRODUCT}' } rescue false)`,
+        `      pkg_ref = pods_project.root_object.package_references.find { |r|`,
+        `        r.is_a?(Xcodeproj::Project::Object::XCRemoteSwiftPackageReference) &&`,
+        `        r.repositoryURL == '${IOS_SPM_URL}'`,
+        `      } rescue nil`,
+        `      unless pkg_ref`,
+        `        pkg_ref = pods_project.new(Xcodeproj::Project::Object::XCRemoteSwiftPackageReference)`,
+        `        pkg_ref.repositoryURL = '${IOS_SPM_URL}'`,
+        `        pkg_ref.requirement = { 'kind' => 'exactVersion', 'version' => '${iosSdkVersion}' }`,
+        `        pods_project.root_object.package_references << pkg_ref`,
+        `      end`,
+        `      dep = pods_project.new(Xcodeproj::Project::Object::XCSwiftPackageProductDependency)`,
+        `      dep.product_name = '${IOS_SPM_PRODUCT}'`,
+        `      dep.package = pkg_ref`,
+        `      dm_target.package_product_dependencies << dep`,
+        `      build_file = pods_project.new(Xcodeproj::Project::Object::PBXBuildFile)`,
+        `      build_file.product_ref = dep`,
+        `      dm_target.frameworks_build_phase.files << build_file`,
+        `      pods_project.save`,
+        `    end`,
+        `  rescue => e`,
+        `    puts "[react-native-dailymotion-sdk] SPM hook error: #{e.message}"`,
+        `  end`,
+      ].join('\n');
+
+      if (POST_INSTALL_RE.test(podfile)) {
+        podfile = podfile.replace(POST_INSTALL_RE, (_, p1) => `${p1}\n${injection}`);
+      } else {
+        // No existing post_install block — create one
+        podfile += `\npost_install do |installer|\n${injection}\nend\n`;
+      }
+
+      fs.writeFileSync(podfilePath, podfile);
+      return config;
+    },
+  ]);
+}
+
+// ---------------------------------------------------------------------------
 // Root plugin
 // ---------------------------------------------------------------------------
 
 const withDailymotionPlayer: ConfigPlugin<Options> = (config, options = {}) => {
   config = withAndroidMavenRepo(config);
   config = withIosSpm(config, options);
+  config = withIosPodfileSpmHook(config, options);
   return config;
 };
 
