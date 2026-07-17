@@ -3,6 +3,7 @@ package com.newreactnativedailymotionsdk.DailymotionPlayer
 import android.content.Context
 import android.util.Log
 import android.view.View
+import android.view.ViewGroup
 import android.widget.FrameLayout
 import androidx.fragment.app.DialogFragment
 import androidx.fragment.app.Fragment
@@ -67,6 +68,13 @@ class DailymotionPlayerNativeView(context: ThemedReactContext?) : FrameLayout(co
     private var playerParameters: PlayerParameters = PlayerParametersBuilder().build()
     private var dmPlayer: PlayerView? = null
     private var playerInitialized: Boolean = false
+
+    // Set when React Native drops this view (onDropViewInstance). Player setup is
+    // asynchronous, so the SDK can deliver a PlayerView after the view is gone; a
+    // leaked player keeps its WebView and IMA session alive and later crashes in
+    // PlayerView.bringAdContainerToFront when an ad break re-parents the WebView.
+    @Volatile
+    private var isDropped: Boolean = false
 
     // Intercepts requestLayout() from PlayerView so DM SDK's internal UI layout
     // requests (triggered by native control taps) don't propagate to React Native's
@@ -147,6 +155,11 @@ class DailymotionPlayerNativeView(context: ThemedReactContext?) : FrameLayout(co
 
         CoroutineScope(Dispatchers.IO).launch {
             creationLock.acquire()
+            if (isDropped) {
+                creationLock.release()
+                Log.w(TAG, "View dropped before player creation, skipping: playerId=$playerId")
+                return@launch
+            }
             Log.d(TAG, "createDailymotionPlayer: lock acquired for playerId=$playerId")
             withContext(Dispatchers.Main) {
 
@@ -164,7 +177,20 @@ class DailymotionPlayerNativeView(context: ThemedReactContext?) : FrameLayout(co
 
                 override fun onPlayerSetupSuccess(player: PlayerView) {
                     creationLock.release()
+                    if (isDropped) {
+                        // Setup completed after React dropped this view (SDK retries can
+                        // deliver late). Destroy immediately so no zombie player keeps a
+                        // live IMA session pointing at a stale view hierarchy.
+                        Log.w(TAG, "Player setup completed after view drop; destroying player")
+                        try {
+                            player.destroy()
+                        } catch (t: Throwable) {
+                            Log.e(TAG, "Error destroying late-delivered player", t)
+                        }
+                        return
+                    }
                     dmPlayer = player
+                    (player.parent as? ViewGroup)?.removeView(player)
                     playerContainerView.addView(
                         dmPlayer,
                         LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT)
@@ -409,6 +435,9 @@ class DailymotionPlayerNativeView(context: ThemedReactContext?) : FrameLayout(co
 
                 override fun onAdLoaded(playerView: PlayerView, adLoaded: PlayerEvent.AdLoaded) {
                     super.onAdLoaded(playerView, adLoaded)
+                    // Fires before IMA CONTENT_PAUSE_REQUESTED — last chance to fix a
+                    // mis-parented WebView before the SDK re-adds it (issue #6 crash).
+                    PlayerViewIntegrityGuard.ensureWebViewParentConsistent(playerView)
                     sendEvent("onAdLoaded", Arguments.createMap().apply {
                         putString("position", adLoaded.position)
                         putInt("skipOffset", adLoaded.skipOffset)
@@ -424,6 +453,7 @@ class DailymotionPlayerNativeView(context: ThemedReactContext?) : FrameLayout(co
 
                 override fun onAdReadyToFetch(playerView: PlayerView, adReadyToFetch: PlayerEvent.AdReadyToFetch) {
                     super.onAdReadyToFetch(playerView, adReadyToFetch)
+                    PlayerViewIntegrityGuard.ensureWebViewParentConsistent(playerView)
                     sendEvent("onAdReadyToFetch", Arguments.createMap().apply {
                         putString("position", adReadyToFetch.position)
                     })
@@ -522,6 +552,25 @@ class DailymotionPlayerNativeView(context: ThemedReactContext?) : FrameLayout(co
     fun setPlaybackSpeed(speed: Double) { dmPlayer?.setPlaybackSpeed(speed) }
     fun setScaleMode(scaleMode: String) { dmPlayer?.setScaleMode(scaleMode) }
     fun destroy() { dmPlayer?.destroy() }
+
+    // Terminal teardown, called from DailymotionPlayerController.onDropViewInstance.
+    // Not from onDetachedFromWindow: Fabric reordering and the fullscreen dialog
+    // legitimately detach this view without dropping it.
+    fun cleanup() {
+        isDropped = true
+        try {
+            dmPlayer?.let { player ->
+                (player.parent as? ViewGroup)?.removeView(player)
+                player.destroy()
+            }
+        } catch (t: Throwable) {
+            Log.e(TAG, "Error destroying player during cleanup", t)
+        } finally {
+            dmPlayer = null
+            playerInitialized = false
+            viewRegistry.remove(id)
+        }
+    }
 
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()

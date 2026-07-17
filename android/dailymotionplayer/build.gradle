@@ -21,6 +21,9 @@ android {
 
 dependencies {
     implementation("com.facebook.react:react-android")
+    // PlayerViewIntegrityGuard.java depends on 2.1.1 internals
+    // (getContainerView$sdk_release / getPlayerWebView surviving R8) —
+    // re-verify those accessors with javap before bumping this version.
     api 'com.dailymotion.player.android:sdk:2.1.1'
     implementation 'androidx.fragment:fragment:1.8.9'
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2'

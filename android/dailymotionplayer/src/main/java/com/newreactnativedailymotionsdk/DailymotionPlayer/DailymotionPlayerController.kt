@@ -41,6 +41,17 @@ class DailymotionPlayerController : SimpleViewManager<View>() {
         (view as? DailymotionPlayerNativeView)?.loadPlayerIfReady()
     }
 
+    override fun onDropViewInstance(view: View) {
+        (view as? DailymotionPlayerNativeView)?.cleanup()
+        super.onDropViewInstance(view)
+    }
+
+    // The player is a stateful WebView with a live ad session; a recycled instance
+    // would be reused with playerInitialized=true and a destroyed player.
+    override fun prepareToRecycleView(reactContext: ThemedReactContext, view: View): View? {
+        return null
+    }
+
     override fun getExportedCustomDirectEventTypeConstants(): Map<String, Any> {
         return MapBuilder.of(
             DailymotionEvent.EVENT_NAME,

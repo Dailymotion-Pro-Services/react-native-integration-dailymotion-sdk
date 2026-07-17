@@ -1,4 +1,4 @@
-import { useImperativeHandle, useRef } from 'react';
+import { useEffect, useImperativeHandle, useRef } from 'react';
 import {
   findNodeHandle,
   NativeModules,
@@ -85,7 +85,21 @@ const DailymotionPlayerView = ({
   style,
   onEvent,
 }: DailymotionPlayerProps) => {
-  const internalRef = useRef(null);
+  const internalRef = useRef<any>(null);
+  // findNodeHandle returns null once the ref is detached, so the tag is captured
+  // while mounted for use in the unmount cleanup below.
+  const reactTagRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      // Destroy the native player on unmount so its WebView and ad session don't
+      // outlive the view (Android crash in PlayerView.bringAdContainerToFront).
+      // Idempotent: the native module no-ops when the view is already gone.
+      if (reactTagRef.current != null && DailymotionPlayerNative) {
+        DailymotionPlayerNative.destroy(reactTagRef.current);
+      }
+    };
+  }, []);
 
   const callMethod = (method: string, ...args: any[]) => {
     if (!internalRef.current) return;
@@ -129,7 +143,12 @@ const DailymotionPlayerView = ({
 
   return (
     <DailymotionPlayerNativeComponent
-      ref={internalRef}
+      ref={(node) => {
+        internalRef.current = node;
+        if (node != null) {
+          reactTagRef.current = findNodeHandle(node);
+        }
+      }}
       playerId={playerId}
       videoId={videoId}
       playlistId={playlistId}
