@@ -1,5 +1,9 @@
 # react-native-dailymotion-sdk
 
+> **Note:** this repo is named `react-native-integration-dailymotion-sdk` on
+> GitHub, but the published npm package is `react-native-dailymotion-sdk`
+> (no "integration"). Search/install using the npm name below.
+
 React Native native UI component wrapping the Dailymotion Player SDK.
 Supports **Android** and **iOS** with New Architecture (Fabric interop / bridgeless).
 
