@@ -181,7 +181,7 @@ playerRef.current?.destroy();
 
 ### Sticky / Floating Player
 
-The demo app (`App.tsx`) includes a production-ready sticky player that switches between inline (full-width, scrolls with content) and floating PiP modes. See the full implementation in `App.tsx`.
+A separate, opt-in example at [`examples/StickyPlayerDemo.tsx`](examples/StickyPlayerDemo.tsx) shows a production-ready sticky player that switches between inline (full-width, scrolls with content) and floating PiP modes. It's not wired into the main demo app (`App.tsx`), since it needs the two extra dependencies below — swap it in as your app entry to try it.
 
 **Key features:**
 
@@ -232,7 +232,7 @@ const playerAnimatedStyle = useAnimatedStyle(() => {
 
 Player positioned via `transform` (GPU-accelerated) instead of layout props for smooth 60fps scroll.
 
-> Full implementation with gesture handlers, resize logic, and mode switching available in `App.tsx`.
+> Full implementation with gesture handlers, resize logic, and mode switching available in `examples/StickyPlayerDemo.tsx`.
 
 ---
 
@@ -342,7 +342,7 @@ All events fire through the single `onEvent` callback. `e.event` is the event na
 
 ## Demo app
 
-The repository includes a full-featured demo app at `App.tsx`. To run it:
+The repository includes a demo app at `App.tsx`. To run it:
 
 ```sh
 npm install
@@ -357,11 +357,12 @@ npx react-native run-ios
 **Demo features:**
 
 - Inline player (scrolls with content)
-- Sticky/floating PiP mode with drag & resize
 - All playback controls (play/pause/seek/speed/quality)
 - Fullscreen support with orientation control
 - Event logging
 - Video switching
+
+For the sticky/floating PiP mode with drag & resize, see [`examples/StickyPlayerDemo.tsx`](examples/StickyPlayerDemo.tsx) (requires `react-native-reanimated` + `react-native-gesture-handler`, see above).
 
 Demo credentials:
 
