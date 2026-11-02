@@ -13,14 +13,6 @@ if [[ -n "$(git status --porcelain)" ]]; then
   exit 1
 fi
 
-# Require npm auth
-if ! npm whoami &>/dev/null; then
-  if [[ -z "${NPM_TOKEN:-}" ]]; then
-    echo "Error: not logged in to npm. Run 'npm login' or set NPM_TOKEN."
-    exit 1
-  fi
-fi
-
 echo "Running lint..."
 npm run lint
 
@@ -60,12 +52,4 @@ echo "Pushing commit and tag..."
 git push origin HEAD
 git push origin "v${NEW_VERSION}"
 
-echo "Publishing to npm..."
-npm publish
-
-echo "Creating GitHub release..."
-gh release create "v${NEW_VERSION}" \
-  --title "v${NEW_VERSION}" \
-  --notes "${ENTRY}"
-
-echo "Released v${NEW_VERSION}"
+echo "Tag v${NEW_VERSION} pushed — .github/workflows/release.yml will publish to npm and create the GitHub release."

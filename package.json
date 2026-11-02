@@ -41,9 +41,9 @@
     "build:plugin": "tsc -p plugin/tsconfig.json"
   },
   "peerDependencies": {
+    "@expo/config-plugins": ">=7.0.0",
     "react": "*",
-    "react-native": "*",
-    "@expo/config-plugins": ">=7.0.0"
+    "react-native": "*"
   },
   "peerDependenciesMeta": {
     "@expo/config-plugins": {
@@ -75,6 +75,5 @@
     "react-native-safe-area-context": "^5.5.2",
     "react-test-renderer": "19.2.3",
     "typescript": "^5.8.3"
-  },
-  "dependencies": {}
+  }
 }

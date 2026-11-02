@@ -35,5 +35,65 @@ target 'NewReactNativeDailymotionSDK' do
       :mac_catalyst_enabled => false,
       # :ccache_enabled => true
     )
+
+    # The installed hermes-engine pod build ships only the modern CDP debugger
+    # API (hermes/cdp/) — the legacy hermes/inspector/ headers that both RN
+    # core's Registration.h and react-native-reanimated's own Hermes runtime
+    # integration fall back to when HERMES_ENABLE_DEBUGGER is set don't exist
+    # in this Hermes build at all, so those fallback includes/namespaces fail.
+    # Neither call site checks for anything but HERMES_ENABLE_DEBUGGER's
+    # presence/value, so disable it everywhere rather than special-casing
+    # one target — this just turns off attaching the legacy Hermes inspector,
+    # which this Hermes build can't support anyway. HERMES_V1_ENABLED=1 is
+    # kept too, as belt-and-suspenders for RN core's `defined()` check.
+    installer.pods_project.targets.each do |target|
+      target.build_configurations.each do |config|
+        defs = config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] || ['$(inherited)']
+        defs = [defs] if defs.is_a?(String)
+        defs << 'HERMES_V1_ENABLED=1' unless defs.include?('HERMES_V1_ENABLED=1')
+        defs << 'HERMES_ENABLE_DEBUGGER=0'
+        config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] = defs
+      end
+    end
+
+    # DailymotionPlayerSDK is SPM-only (no CocoaPods release), so the local
+    # `DailymotionPlayer` pod target can't declare it as a normal pod
+    # dependency. `pod install` regenerates Pods.xcodeproj from scratch every
+    # time, which would otherwise require re-adding the package to that
+    # target by hand in Xcode after every install. Do it here instead so it
+    # always comes back on its own.
+    pods_project = installer.pods_project
+    dm_target = pods_project.native_targets.find { |t| t.name == 'DailymotionPlayer' }
+
+    if dm_target
+      package_ref = pods_project.root_object.package_references.find do |ref|
+        ref.is_a?(Xcodeproj::Project::Object::XCRemoteSwiftPackageReference) &&
+          ref.repositoryURL == 'https://github.com/dailymotion/player-sdk-ios'
+      end
+
+      unless package_ref
+        package_ref = pods_project.new(Xcodeproj::Project::Object::XCRemoteSwiftPackageReference)
+        package_ref.repositoryURL = 'https://github.com/dailymotion/player-sdk-ios'
+        package_ref.requirement = { 'kind' => 'upToNextMajorVersion', 'minimumVersion' => '1.4.11' }
+        pods_project.root_object.package_references << package_ref
+      end
+
+      has_product_dep = dm_target.package_product_dependencies.any? { |d| d.product_name == 'DailymotionPlayerSDK' }
+
+      unless has_product_dep
+        product_dep = pods_project.new(Xcodeproj::Project::Object::XCSwiftPackageProductDependency)
+        product_dep.package = package_ref
+        product_dep.product_name = 'DailymotionPlayerSDK'
+        dm_target.package_product_dependencies << product_dep
+
+        build_file = pods_project.new(Xcodeproj::Project::Object::PBXBuildFile)
+        build_file.product_ref = product_dep
+        dm_target.frameworks_build_phase.files << build_file
+      end
+
+      pods_project.save
+    else
+      Pod::UI.warn 'DailymotionPlayer pod target not found — DailymotionPlayerSDK SPM wiring skipped.'
+    end
   end
 end

@@ -8,7 +8,6 @@ class DailymotionPlayerNativeView: UIView, DMVideoDelegate, DMAdDelegate {
   static var viewRegistry: [NSNumber: DailymotionPlayerNativeView] = [:]
   private static let creationQueue = DispatchQueue(label: "com.dailymotion.player.creation", qos: .userInitiated)
 
-  weak var parentViewController: UIViewController?
   var playerView: DMPlayerView?
   private var playerInitialized = false
 
@@ -81,7 +80,7 @@ class DailymotionPlayerNativeView: UIView, DMVideoDelegate, DMAdDelegate {
   }
 
   @objc func setMute(_ mute: Bool) {
-    self.playerView?.setMute(mute: mute)
+    self.playerView?.setVolume(mute ? 0.0 : 1.0)
   }
 
   @objc func setPlaybackSpeed(_ speed: Double) {
@@ -229,7 +228,6 @@ class DailymotionPlayerNativeView: UIView, DMVideoDelegate, DMAdDelegate {
   }
 
   private func buildPlayerParameters() -> DMPlayerParameters {
-    var mute = false
     var startTime: TimeInterval = 0
     var loop = false
     var scaleMode: DMPlayerParameters.ScaleMode = .fit
@@ -237,7 +235,6 @@ class DailymotionPlayerNativeView: UIView, DMVideoDelegate, DMAdDelegate {
     var allowPIP = true
     var allowIDFA = true
 
-    if let v = playerParameters["mute"] as? Bool { mute = v }
     if let v = playerParameters["startTime"] as? NSNumber { startTime = TimeInterval(truncating: v) }
     if let v = playerParameters["loop"] as? Bool { loop = v }
     if let v = playerParameters["scaleMode"] as? String {
@@ -257,7 +254,6 @@ class DailymotionPlayerNativeView: UIView, DMVideoDelegate, DMAdDelegate {
 
     return DMPlayerParameters(
       scaleMode: scaleMode,
-      mute: mute,
       startTime: startTime,
       loop: loop,
       allowIDFA: allowIDFA,
@@ -272,6 +268,9 @@ class DailymotionPlayerNativeView: UIView, DMVideoDelegate, DMAdDelegate {
     playerView.translatesAutoresizingMaskIntoConstraints = true
     self.addSubview(playerView)
     playerView.frame = self.bounds
+    if let mute = self.playerParameters["mute"] as? Bool, mute {
+      playerView.setVolume(0.0)
+    }
     print("[DM] Player view added")
   }
 
@@ -322,15 +321,51 @@ extension DailymotionPlayerNativeView: DMPlayerDelegate {
     return nil
   }
 
-  func playerWillPresentFullscreenViewController(_ player: DMPlayerView) -> UIViewController? {
-    guard let viewController = self.findViewController() else {
-      fatalError("[DM] No parent view controller found in the view hierarchy.")
+  /// Walks down from a root view controller to the one actually visible on screen,
+  /// so ads/fullscreen present on top of whatever is currently shown rather than a
+  /// stale ancestor hidden behind a modal, nav push, or tab switch.
+  private func visibleViewController(from root: UIViewController) -> UIViewController {
+    if let presented = root.presentedViewController {
+      return visibleViewController(from: presented)
     }
-    return viewController
+    if let nav = root as? UINavigationController, let top = nav.visibleViewController {
+      return visibleViewController(from: top)
+    }
+    if let tab = root as? UITabBarController, let selected = tab.selectedViewController {
+      return visibleViewController(from: selected)
+    }
+    return root
+  }
+
+  /// Resolves a view controller to present ads/fullscreen on, with fallbacks beyond the
+  /// immediate responder chain: a partner app's own view hierarchy (modals, custom nav/tab
+  /// wrapping, screen/portal libraries, or attachment timing) may not put a UIViewController
+  /// directly above this bare UIView when the SDK requests one.
+  func resolveViewController() -> UIViewController? {
+    if let viewController = self.findViewController() {
+      return viewController
+    }
+    if let root = self.window?.rootViewController {
+      return visibleViewController(from: root)
+    }
+    for scene in UIApplication.shared.connectedScenes {
+      guard let windowScene = scene as? UIWindowScene else { continue }
+      for window in windowScene.windows where window.isKeyWindow {
+        if let root = window.rootViewController {
+          return visibleViewController(from: root)
+        }
+      }
+    }
+    return nil
+  }
+
+  func playerWillPresentFullscreenViewController(_ player: DMPlayerView) -> UIViewController? {
+    return self.resolveViewController()
   }
 
   func playerWillPresentAdInParentViewController(_ player: DMPlayerView) -> UIViewController {
-    guard let viewController = self.findViewController() else {
+    guard let viewController = self.resolveViewController() else {
+      sendEvent("playerDidFailWithError", ["error": "No parent view controller found in the view hierarchy."])
       fatalError("[DM] No parent view controller found in the view hierarchy.")
     }
     return viewController
