@@ -1,3 +1,16 @@
+## [1.0.4] - 2026-11-02
+
+a41a01b ci: switch release workflow to npm Trusted Publisher (OIDC), drop NPM_TOKEN
+0f2996a ci: publish to npm and create GitHub release on tag push
+71cf995 refactor(demo): split sticky-player example out of App.tsx, drop reanimated dep
+b10b5bc build(ios): automate DailymotionPlayerSDK SPM wiring, fix Hermes header build error
+befbe25 fix(ios): fall back to window hierarchy when resolving ad/fullscreen view controller
+0b2cb62 docs: clarify npm package name differs from repo name
+4b5eda4 fix: prevent IllegalStateException in PlayerView.bringAdContainerToFront
+e310d6a chore: auto-create GitHub release in release script
+c129693 docs: restructure installation guide for Expo vs bare React Native
+
+
 ## [1.0.2] - 2026-05-27
 
 
